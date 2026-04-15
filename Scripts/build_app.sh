@@ -28,7 +28,6 @@ chmod +x "$BIN"
 if compgen -G "${ROOT}/Sources/FSClientLauncher/Resources/*.svg" > /dev/null; then
   cp "${ROOT}/Sources/FSClientLauncher/Resources/"*.svg "${DEST}/Contents/Resources/" 2>/dev/null || true
 fi
-
 RES_ICNS="${ROOT}/Sources/FSClientLauncher/Resources/AppIcon.icns"
 echo "==> App-Icon (AppIcon.icns)"
 # Neu erzeugen nur mit rsvg; scheitert iconutil, bleibt die bestehende .icns durch atomares Schreiben im Skript erhalten.
@@ -40,6 +39,13 @@ elif [[ -f "$RES_ICNS" ]]; then
   echo "(rsvg-convert fehlt — vorhandenes AppIcon.icns wird übernommen)"
 else
   echo "Hinweis: Kein AppIcon.icns — für Finder-Icon: brew install librsvg && ./Scripts/build_app_icon.sh" >&2
+fi
+
+FS_ICON="${ROOT}/Sources/FSClientLauncher/Resources/Icon.png"
+if [[ -f "$FS_ICON" ]]; then
+  cp "$FS_ICON" "${DEST}/Contents/Resources/Icon.png"
+else
+  echo "Warnung: Fehlt ${FS_ICON} — Java-Dock und FS-Client-Kacheln ohne eigenes Symbol (Icon.png ins Repo legen)." >&2
 fi
 if [[ -f "$RES_ICNS" ]]; then
   if ! file "$RES_ICNS" | grep -q 'Mac OS X icon'; then

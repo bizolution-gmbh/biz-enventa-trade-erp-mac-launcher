@@ -35,17 +35,17 @@ struct EnventaLogoHeader: View {
             HStack(alignment: .center) {
                 EnventaFullLogoWebView()
                     .aspectRatio(Self.fullLogoAspect, contentMode: .fit)
-                    .frame(height: 44)
-                    .padding(.vertical, 6)
+                    .frame(height: 38)
+                    .padding(.vertical, 4)
                     .padding(.horizontal, 8)
                     .accessibilityLabel("enventa Logo")
                 Spacer(minLength: 0)
             }
             Divider()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .background(Color.white)
-        .padding(.bottom, 4)
+        .padding(.bottom, 2)
     }
 }

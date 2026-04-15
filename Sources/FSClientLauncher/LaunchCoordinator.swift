@@ -143,8 +143,13 @@ enum LaunchCoordinator {
         let dockTitleRaw = launch.args[ApiFsClientKeys.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let dockName = dockTitleRaw.isEmpty ? "FS Client" : dockTitleRaw
         vm.append("-Xdock:name=\(dockName)")
-        if let icns = Bundle.main.path(forResource: "AppIcon", ofType: "icns"), !icns.isEmpty {
-            vm.append("-Xdock:icon=\(icns)")
+        // Nur aus gebündeltem `Icon.png` (nicht `AppIcon.icns` — das ist das Launcher-Symbol mit den grünen Balken).
+        if let dockPng = LauncherBrandingImages.writeJavaDockIconPNGFromBundleIfNeeded(), !dockPng.isEmpty {
+            vm.append("-Xdock:icon=\(dockPng)")
+        }
+        // Menüleisten-Titel (macOS) an Dock-Namen angleichen, sofern der Broker nichts setzt (vgl. FlatLaf macOS).
+        if !vm.contains(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("-Dapple.awt.application.name=") }) {
+            vm.append("-Dapple.awt.application.name=\(dockName)")
         }
 
         let jars = brokerInfo.JarFiles ?? []

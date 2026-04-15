@@ -74,7 +74,7 @@ final class JavaProcessOutputWindow: NSObject, NSWindowDelegate {
         let block = { [weak self] in
             guard let self else { return }
             self.appendOnMain(
-                "\n—— Java-Prozess beendet (Exit-Code \(exitCode)). Fenster schließen beendet den Launcher. ——\n"
+                "\n—— Java-Prozess beendet (Exit-Code \(exitCode)). Das Ausgabefenster kann geschlossen werden; der Launcher bleibt aktiv (Menüleisten-Symbol). ——\n"
             )
         }
         if Thread.isMainThread {
@@ -99,6 +99,8 @@ final class JavaProcessOutputWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        NSApp.terminate(nil)
+        // Nur Fenster freigeben: App und ggf. laufender Java-Kindprozess bleiben aktiv (Tray / Dock).
+        window = nil
+        textView = nil
     }
 }

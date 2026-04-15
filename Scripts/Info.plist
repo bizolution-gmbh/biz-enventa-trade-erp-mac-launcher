@@ -24,6 +24,8 @@
 	<string>AppIcon</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>LSUIElement</key>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>LSMinimumSystemVersion</key>

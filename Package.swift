@@ -12,7 +12,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "FSClientLauncher",
-            path: "Sources/FSClientLauncher"
+            path: "Sources/FSClientLauncher",
+            resources: [
+                .copy("Resources/Icon.png"),
+            ]
         ),
     ]
 )

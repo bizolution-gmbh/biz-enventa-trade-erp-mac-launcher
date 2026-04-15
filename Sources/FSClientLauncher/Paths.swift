@@ -25,6 +25,11 @@ enum AppPaths {
         appDataDirectory.appendingPathComponent("launcherconfig.json", isDirectory: false)
     }
 
+    /// Gespeicherte `.fsclient`-Kürzel und Schalter für das Menüleisten-Icon.
+    static var fsClientShortcutsURL: URL {
+        appDataDirectory.appendingPathComponent("menu-fsclients.json", isDirectory: false)
+    }
+
     static var jarCacheDirectory: URL {
         localAppDataDirectory.appendingPathComponent(".jarcache", isDirectory: true)
     }
@@ -36,6 +41,11 @@ enum AppPaths {
     /// Wie unter Windows: `…\FS Client Launcher\Logfiles`
     static var logFilesDirectory: URL {
         appDataDirectory.appendingPathComponent("Logfiles", isDirectory: true)
+    }
+
+    /// PNG mit gleicher Dock-Maske wie der Launcher (für `java -Xdock:icon=…`).
+    static var javaDockIconPNG: URL {
+        localAppDataDirectory.appendingPathComponent("fscl-java-dock-icon.png", isDirectory: false)
     }
 
     /// Basisverzeichnis neben dem ausführbaren Launcher (JDK-Bundles `jdk11/`, `jdk21/`, `jre8/`).

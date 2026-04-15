@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Mark mit weißem Rand: rsvg platziert skaliertes Mark auf größerer Seite (-b none), Swift normalisiert zu RGBA für iconutil.
 MARK_SVG="${ROOT}/Sources/FSClientLauncher/Resources/enventa-mark-cropped.svg"
 NORM_SWIFT="${ROOT}/Scripts/normalize_iconset_png.swift"
+PACK_SWIFT="${ROOT}/Scripts/pack_iconset_to_icns.swift"
 ICONSET="${ROOT}/Sources/FSClientLauncher/Resources/AppIcon.iconset"
 ICNS="${ROOT}/Sources/FSClientLauncher/Resources/AppIcon.icns"
 
@@ -22,6 +23,7 @@ fi
 
 [[ -f "$MARK_SVG" ]] || { echo "Fehlt: $MARK_SVG" >&2; exit 1; }
 [[ -f "$NORM_SWIFT" ]] || { echo "Fehlt: $NORM_SWIFT" >&2; exit 1; }
+[[ -f "$PACK_SWIFT" ]] || { echo "Fehlt: $PACK_SWIFT" >&2; exit 1; }
 
 rm -rf "$ICONSET"
 mkdir -p "$ICONSET"
@@ -56,22 +58,32 @@ render 1024 icon_512x512@2x.png
 xattr -cr "$ICONSET"
 
 # Nie direkt nach $ICNS schreiben: bei Fehler kann iconutil die Datei leeren/zerstören.
-ICNS_PART="${ICNS%.icns}.particon.$$"
+# iconutil verlangt für --output / -o eine Pfadendung ".icns" (sonst nur „Invalid arguments“).
+ICNS_PART="${ICNS%.icns}.particon.$$.$RANDOM.icns"
 rm -f "$ICNS_PART"
 iconutil_ok=0
-if iconutil --convert icns --output "$ICNS_PART" "$ICONSET" 2>/dev/null; then
-  iconutil_ok=1
-elif iconutil -c icns "$ICONSET" -o "$ICNS_PART" 2>/dev/null; then
+iconutil_err="$(mktemp -t fscl-iconutil.XXXXXX.err)"
+if iconutil -c icns "$ICONSET" -o "$ICNS_PART" 2>"$iconutil_err"; then
   iconutil_ok=1
 fi
 if [[ "$iconutil_ok" != "1" ]] || [[ ! -s "$ICNS_PART" ]]; then
   rm -f "$ICNS_PART"
-  echo "iconutil fehlgeschlagen — $ICNS bleibt unverändert (falls vorhanden)." >&2
-  exit 1
+  if [[ -s "$iconutil_err" ]]; then
+    echo "iconutil meldet:" >&2
+    sort -u "$iconutil_err" | sed 's/^/  /' >&2 || true
+  fi
+  rm -f "$iconutil_err"
+  echo "iconutil fehlgeschlagen — versuche Fallback (Swift-Packer) …" >&2
+  if ! swift "$PACK_SWIFT" "$ICONSET" "$ICNS_PART"; then
+    echo "Auch Fallback fehlgeschlagen — $ICNS bleibt unverändert (falls vorhanden)." >&2
+    exit 1
+  fi
+else
+  rm -f "$iconutil_err"
 fi
 if ! file "$ICNS_PART" | grep -q 'Mac OS X icon'; then
   rm -f "$ICNS_PART"
-  echo "iconutil-Ausgabe ist keine gültige .icns — $ICNS bleibt unverändert." >&2
+  echo "Die erzeugte Datei ist keine gültige .icns — $ICNS bleibt unverändert." >&2
   exit 1
 fi
 mv -f "$ICNS_PART" "$ICNS"
