@@ -183,10 +183,28 @@ private struct ConfigRootView: View {
                     .font(.system(.body, design: .monospaced))
                     .frame(minHeight: 64)
             }
-            Section("Java 8") {
+            Section {
                 TextEditor(text: $java8Joined)
                     .font(.system(.body, design: .monospaced))
                     .frame(minHeight: 48)
+                Button("Auf macOS-Standard zurücksetzen") {
+                    java8Joined = LauncherSettings.recommendedJava8VmArgumentsForMacOS.joined(separator: "\n")
+                }
+            } header: {
+                Text("Java 8")
+            } footer: {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(
+                        "Eine Zeile pro JVM-Argument (z. B. -D…). Ist die Liste leer, trägt der Launcher macOS-Swing-Standards ein (Menüleiste oben, Anwendungsname, Titelleisten-Erscheinungsbild, Aqua-LAF)."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    Link(
+                        "FlatLaf – Hinweise für macOS",
+                        destination: URL(string: "https://www.formdev.com/flatlaf/macos/")!
+                    )
+                    .font(.footnote)
+                }
             }
             Section("Java 11") {
                 TextEditor(text: $java11Joined)

@@ -43,15 +43,38 @@ struct LauncherSettings: Codable, Equatable {
 
     private static let ioQueue = DispatchQueue(label: "de.frameworksystems.FSClientLauncher.settings")
 
+    /// Swing-/AWT-Integration auf macOS als `-D`-Systemproperties (entsprechen `System.setProperty` vor UI-Start).
+    /// Orientierung: [FlatLaf – macOS](https://www.formdev.com/flatlaf/macos/) (Menüleiste, Anwendungsname, Titelleisten-Erscheinungsbild).
+    /// `apple.awt.application.appearance` setzt ab ca. Java 8u322 / 11.0.8 u. a. die Titelleisten an die Systemdarstellung.
+    /// `swing.defaultlaf=Aqua` nutzt die mit macOS-JDKs übliche Aqua-Oberfläche; mit FlatLaf im Classpath z. B. durch
+    /// `-Dswing.defaultlaf=com.formdev.flatlaf.FlatLightLaf` ersetzbar.
+    static let recommendedJava8VmArgumentsForMacOS: [String] = [
+        "-Dapple.laf.useScreenMenuBar=true",
+        "-Dapple.awt.application.name=FS Client",
+        "-Dapple.awt.application.appearance=system",
+        "-Dswing.defaultlaf=com.apple.laf.AquaLookAndFeel",
+    ]
+
     static func load() -> LauncherSettings {
         ioQueue.sync {
             let url = AppPaths.launcherConfigURL
-            guard let data = try? Data(contentsOf: url),
-                let obj = try? JSONDecoder().decode(LauncherSettings.self, from: data) else {
-                return LauncherSettings()
+            let base: LauncherSettings
+            if let data = try? Data(contentsOf: url),
+               let decoded = try? JSONDecoder().decode(LauncherSettings.self, from: data) {
+                base = decoded
+            } else {
+                base = LauncherSettings()
             }
-            return obj
+            var s = base
+            s.applyRecommendedMacJava8JvmArgumentsIfNeeded()
+            return s
         }
+    }
+
+    /// Füllt `Java8VmArguments` nur, wenn noch keine Zeilen gespeichert sind (bestehende Konfiguration bleibt unverändert).
+    mutating func applyRecommendedMacJava8JvmArgumentsIfNeeded() {
+        guard Java8VmArguments.isEmpty else { return }
+        Java8VmArguments = Self.recommendedJava8VmArgumentsForMacOS
     }
 
     func save() {
