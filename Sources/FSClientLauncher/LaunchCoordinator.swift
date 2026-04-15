@@ -87,6 +87,7 @@ enum LaunchCoordinator {
             settings: settings,
             runtime: runtime,
             arch: arch,
+            detachAfterStart: !settings.DisplayConsole,
             log: log
         )
     }
@@ -112,12 +113,18 @@ enum LaunchCoordinator {
         }
     }
 
+    /// Ein Argument für `bash -c` (POSIX: alles in einfache Anführungszeichen, `'` als `'\''`).
+    private static func shellSingleQuoted(_ s: String) -> String {
+        "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
     private static func startJavaClient(
         brokerInfo: ApiJarDownload,
         launch: ApiFsClient,
         settings: LauncherSettings,
         runtime: JavaRuntimeResolver.Resolved,
         arch: String?,
+        detachAfterStart: Bool,
         log: @escaping (String) -> Void
     ) throws {
         var vm: [String] = []
@@ -132,6 +139,13 @@ enum LaunchCoordinator {
         }
         vm.append(contentsOf: settings.JavaVmArguments)
         vm.append(contentsOf: runtime.vmArguments)
+
+        let dockTitleRaw = launch.args[ApiFsClientKeys.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let dockName = dockTitleRaw.isEmpty ? "FS Client" : dockTitleRaw
+        vm.append("-Xdock:name=\(dockName)")
+        if let icns = Bundle.main.path(forResource: "AppIcon", ofType: "icns"), !icns.isEmpty {
+            vm.append("-Xdock:icon=\(icns)")
+        }
 
         let jars = brokerInfo.JarFiles ?? []
         let mainClass = brokerInfo.MainClass?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -176,21 +190,12 @@ enum LaunchCoordinator {
             nativePrefixes.append(jarDir.appendingPathComponent(jar.Sha1, isDirectory: true).path)
         }
 
-        let p = Process()
-        p.executableURL = runtime.javaExecutable
-        p.arguments = args
-        p.currentDirectoryURL = jarDir
         var env = ProcessInfo.processInfo.environment
         if !nativePrefixes.isEmpty {
             let prefix = nativePrefixes.joined(separator: ":")
             env["PATH"] = prefix + ":" + (env["PATH"] ?? "")
         }
-        p.environment = env
 
-        let out = Pipe()
-        let err = Pipe()
-        p.standardOutput = out
-        p.standardError = err
         log(
             """
             Java: \(runtime.javaExecutable.path)
@@ -200,33 +205,101 @@ enum LaunchCoordinator {
             """
         )
 
-        try p.run()
         let cacheDays = settings.CacheCleanDays
         Task.detached {
             CacheCleanup.cleanupCache(days: nil, cacheCleanDays: cacheDays)
         }
-        out.fileHandleForReading.readabilityHandler = { h in
-            let d = h.availableData
-            if d.isEmpty { return }
-            if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
+
+        if detachAfterStart {
+            try startJavaClientDetached(
+                javaPath: runtime.javaExecutable.path,
+                javaArguments: args,
+                jarDir: jarDir,
+                environment: env,
+                log: log
+            )
+        } else {
+            let p = Process()
+            p.executableURL = runtime.javaExecutable
+            p.arguments = args
+            p.currentDirectoryURL = jarDir
+            p.environment = env
+
+            let out = Pipe()
+            let err = Pipe()
+            p.standardOutput = out
+            p.standardError = err
+
+            try p.run()
+            out.fileHandleForReading.readabilityHandler = { h in
+                let d = h.availableData
+                if d.isEmpty { return }
+                if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
+            }
+            err.fileHandleForReading.readabilityHandler = { h in
+                let d = h.availableData
+                if d.isEmpty { return }
+                if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
+            }
+            p.waitUntilExit()
+            out.fileHandleForReading.readabilityHandler = nil
+            err.fileHandleForReading.readabilityHandler = nil
+            drainPipeRemainder(pipe: out, log: log)
+            drainPipeRemainder(pipe: err, log: log)
+            let exitCode = p.terminationStatus
+            if settings.DisplayConsole {
+                JavaProcessOutputWindow.shared.appendFooter(exitCode: exitCode)
+            }
+            if exitCode != 0 {
+                throw LaunchError.clientExit(exitCode)
+            }
         }
-        err.fileHandleForReading.readabilityHandler = { h in
-            let d = h.availableData
-            if d.isEmpty { return }
-            if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
+    }
+
+    /// Startet Java in einem kurzlebigen `bash`, damit der Kindprozess beim Beenden des Launchers nicht an Pipes hängt.
+    /// Ohne `DisplayConsole`: Launcher kann sich beenden, im Menü bleibt die Swing-/JavaFX-App mit `-Xdock:name` sichtbar.
+    private static func startJavaClientDetached(
+        javaPath: String,
+        javaArguments: [String],
+        jarDir: URL,
+        environment: [String: String],
+        log: @escaping (String) -> Void
+    ) throws {
+        try FileManager.default.createDirectory(at: AppPaths.logFilesDirectory, withIntermediateDirectories: true)
+        let logURL = AppPaths.logFilesDirectory.appendingPathComponent("java-client-output.log", isDirectory: false)
+
+        let argv = ([javaPath] + javaArguments).map(shellSingleQuoted).joined(separator: " ")
+        let qJar = shellSingleQuoted(jarDir.path)
+        let qLog = shellSingleQuoted(logURL.path)
+        // Nicht-interaktives bash beendet Hintergrundjobs beim Exit üblicherweise nicht mit SIGHUP.
+        let script =
+            "set -e; cd \(qJar) || exit 2; \(argv) >>\(qLog) 2>&1 & sleep 0.22; if kill -0 $! 2>/dev/null; then exit 0; fi; wait $!; exit $?"
+
+        let bash = Process()
+        bash.executableURL = URL(fileURLWithPath: "/bin/bash")
+        bash.arguments = ["-c", script]
+        bash.currentDirectoryURL = jarDir
+        bash.environment = environment
+
+        let out = Pipe()
+        bash.standardOutput = out
+        bash.standardError = out
+        bash.standardInput = FileHandle.nullDevice
+
+        try bash.run()
+        bash.waitUntilExit()
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        if let tail = String(data: data, encoding: .utf8), !tail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            log(tail)
         }
-        p.waitUntilExit()
-        out.fileHandleForReading.readabilityHandler = nil
-        err.fileHandleForReading.readabilityHandler = nil
-        drainPipeRemainder(pipe: out, log: log)
-        drainPipeRemainder(pipe: err, log: log)
-        let exitCode = p.terminationStatus
-        if settings.DisplayConsole {
-            JavaProcessOutputWindow.shared.appendFooter(exitCode: exitCode)
+        let status = bash.terminationStatus
+        if status != 0 {
+            log(
+                "Java-Start fehlgeschlagen (Exit \(status)). Details in \(logURL.path)\n"
+            )
+            throw LaunchError.clientExit(status)
         }
-        if exitCode != 0 {
-            throw LaunchError.clientExit(exitCode)
-        }
+        log("Java gestartet (ohne Konsole). Stdout/Stderr: \(logURL.path)\n")
     }
 
     private static func stripDisplayConsoleSystemProperties(_ vm: inout [String]) {
