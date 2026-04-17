@@ -406,6 +406,15 @@ private struct ConfigRootView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.bar.opacity(0.35))
+
+            Text("© 2026 BIZOLUTION GmbH")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
         }
         .onAppear {
             shortcutsStore.loadFromDisk()
