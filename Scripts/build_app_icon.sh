@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Erzeugt AppIcon.icns aus enventa-mark-cropped.svg (weißer Rand, abgerundete transparente Außenkanten für Finder/DMG-Volumen, siehe normalize_iconset_png.swift).
+# Neuaufbau nur bei fehlender .icns oder neueren Eingaben (SVG + Icon-Skripte), damit unnötige Byte-Drifts beim Build entfallen.
 # Voraussetzung: rsvg-convert (z. B. brew install librsvg), swift (Xcode Command Line Tools).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -24,6 +25,27 @@ fi
 [[ -f "$MARK_SVG" ]] || { echo "Fehlt: $MARK_SVG" >&2; exit 1; }
 [[ -f "$NORM_SWIFT" ]] || { echo "Fehlt: $NORM_SWIFT" >&2; exit 1; }
 [[ -f "$PACK_SWIFT" ]] || { echo "Fehlt: $PACK_SWIFT" >&2; exit 1; }
+
+# Neuaufbau nur, wenn .icns fehlt oder Quelle/Skripte neuer sind (vermeidet bei jedem Build andere PNG-/Encoder-Bytes).
+ICON_DEPS=(
+  "$MARK_SVG"
+  "$NORM_SWIFT"
+  "$PACK_SWIFT"
+  "${ROOT}/Scripts/build_app_icon.sh"
+)
+if [[ -f "$ICNS" ]]; then
+  skip=true
+  for f in "${ICON_DEPS[@]}"; do
+    if [[ "$f" -nt "$ICNS" ]]; then
+      skip=false
+      break
+    fi
+  done
+  if [[ "$skip" == true ]]; then
+    echo "==> $ICNS ist aktuell (SVG und Icon-Skripte nicht neuer) — überspringe Neuaufbau."
+    exit 0
+  fi
+fi
 
 rm -rf "$ICONSET"
 mkdir -p "$ICONSET"
