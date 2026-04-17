@@ -570,18 +570,11 @@ private struct ConfigRootView: View {
                 } header: {
                     Text("Java 8")
                 } footer: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(
-                            "Ist die Java-8-Liste leer, trägt der Launcher beim nächsten Laden die macOS-Swing-Standards ein (wenn Java 8 verfügbar ist)."
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        Link(
-                            "FlatLaf – Hinweise für macOS",
-                            destination: URL(string: "https://www.formdev.com/flatlaf/macos/")!
-                        )
-                        .font(.footnote)
-                    }
+                    Text(
+                        "Ist die Liste leer, trägt der Launcher beim nächsten Laden die mitgelieferten Standard-Argumente ein (wenn Java 8 verfügbar ist)."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 }
             }
             if java11RuntimePresent {

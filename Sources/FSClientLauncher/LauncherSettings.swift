@@ -43,16 +43,13 @@ struct LauncherSettings: Codable, Equatable {
 
     private static let ioQueue = DispatchQueue(label: "de.frameworksystems.FSClientLauncher.settings")
 
-    /// Swing-/AWT-Integration auf macOS als `-D`-Systemproperties (entsprechen `System.setProperty` vor UI-Start).
-    /// Orientierung: [FlatLaf – macOS](https://www.formdev.com/flatlaf/macos/) (Menüleiste, Anwendungsname, Titelleisten-Erscheinungsbild).
-    /// `apple.awt.application.appearance` setzt ab ca. Java 8u322 / 11.0.8 u. a. die Titelleisten an die Systemdarstellung.
-    /// `swing.defaultlaf=Aqua` nutzt die mit macOS-JDKs übliche Aqua-Oberfläche; mit FlatLaf im Classpath z. B. durch
-    /// `-Dswing.defaultlaf=com.formdev.flatlaf.FlatLightLaf` ersetzbar.
+    /// Mitgelieferte Standard-`-D`-Properties für **Java 8** auf macOS (Menüleiste, Anwendungsname, Darstellung, Kantenglättung).
     static let recommendedJava8VmArgumentsForMacOS: [String] = [
         "-Dapple.laf.useScreenMenuBar=true",
-        "-Dapple.awt.application.name=FS Client",
+        "-Dapple.awt.application.name=enventa Trade ERP",
         "-Dapple.awt.application.appearance=system",
-        "-Dswing.defaultlaf=com.apple.laf.AquaLookAndFeel",
+        "-Dapple.awt.antialiasing=true",
+        "-Dapple.awt.textantialiasing=true",
     ]
 
     static func load() -> LauncherSettings {
