@@ -49,6 +49,23 @@ struct ApiFsClient: Sendable {
         guard let v = args[ApiFsClientKeys.support] else { return false }
         return (v as NSString).boolValue
     }
+
+    /// Nicht-leerer Anwendungstitel aus der `.fsclient`-JSON (`title`).
+    var configurationTitle: String? {
+        let t = args[ApiFsClientKeys.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return t.isEmpty ? nil : t
+    }
+
+    /// Anzeigename für Menüleiste/Kachel: zuerst `title` aus der Konfiguration, sonst Broker-Host, Dateiname oder URL-Host.
+    func displayNameForShortcutMenu(originalArgument: String, localFilePath: String?) -> String {
+        if let t = configurationTitle { return t }
+        if let host = URL(string: broker)?.host, !host.isEmpty { return host }
+        if let p = localFilePath {
+            return URL(fileURLWithPath: p).deletingPathExtension().lastPathComponent
+        }
+        if let u = URL(string: originalArgument), let h = u.host, !h.isEmpty { return h }
+        return "FS Client"
+    }
 }
 
 // MARK: - Broker-Antwort (ApiJarDownload)

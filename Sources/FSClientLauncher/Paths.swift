@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Entspricht den Pfaden aus `ConfigService` / `CacheService` der Windows-Variante, auf macOS gemappt.
@@ -28,6 +29,35 @@ enum AppPaths {
     /// Gespeicherte `.fsclient`-Kürzel und Schalter für das Menüleisten-Icon.
     static var fsClientShortcutsURL: URL {
         appDataDirectory.appendingPathComponent("menu-fsclients.json", isDirectory: false)
+    }
+
+    /// Importierte `.fsclient`-Dateien (Browser-Download, HTTP-Start, temporäre Pfade) — unter **Application Support** (Best Practice).
+    static var importedFsClientsDirectory: URL {
+        appDataDirectory.appendingPathComponent("ImportedFsClients", isDirectory: true)
+    }
+
+    /// Temporäre / kurzlebige Speicherorte (z. B. Browser-„Öffnen mit“): Inhalt nach erfolgreichem Start nach `importedFsClientsDirectory` kopieren.
+    static func isEphemeralFsClientPath(_ path: String) -> Bool {
+        let std = (path as NSString).standardizingPath
+        let tmp = (NSTemporaryDirectory() as NSString).standardizingPath
+        if std.hasPrefix(tmp) { return true }
+        if std.contains("/var/folders/") || std.contains("/private/var/folders/") { return true }
+        let lower = std.lowercased()
+        if lower.hasPrefix("/tmp/") || lower.hasPrefix("/private/tmp/") { return true }
+        return false
+    }
+
+    /// Schreibt JSON-Bytes deterministisch benannt (`fsclient-<SHA256>.fsclient`); gleicher Inhalt → gleicher Pfad.
+    static func saveImportedFsClientJson(_ data: Data) throws -> String {
+        try FileManager.default.createDirectory(at: importedFsClientsDirectory, withIntermediateDirectories: true)
+        let digest = SHA256.hash(data: data)
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        let dest = importedFsClientsDirectory.appendingPathComponent("fsclient-\(hex).fsclient", isDirectory: false)
+        if FileManager.default.fileExists(atPath: dest.path) {
+            return dest.path
+        }
+        try data.write(to: dest, options: .atomic)
+        return dest.path
     }
 
     static var jarCacheDirectory: URL {

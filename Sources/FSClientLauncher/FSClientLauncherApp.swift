@@ -29,8 +29,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         AppPaths.migrateLegacyDirectoriesIfNeeded()
         FsClientShortcutsStore.shared.bootstrapTrayPersistenceAtLaunch()
         MenuBarExtraController.shared.installIfNeeded()
+        Self.installMinimalEditMenuIfNeeded()
         // Kein eigenes `applicationIconImage`: Dock nutzt das Bundle-Icon; Identifikation über Menüleiste (Tray).
         NSApp.applicationIconImage = nil
+    }
+
+    /// Ohne Menü „Bearbeiten“ leiten Cmd+V/C/X u. a. nicht zu `NSTextField`/`NSTextView` (Accessory-App) → Systemton beim Einfügen.
+    private static func installMinimalEditMenuIfNeeded() {
+        if NSApp.mainMenu == nil {
+            let main = NSMenu()
+            let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+                ?? (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String)
+                ?? ProcessInfo.processInfo.processName
+            let appItem = NSMenuItem()
+            appItem.submenu = NSMenu()
+            appItem.submenu?.addItem(withTitle: "\(appName) beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+            appItem.title = appName
+            main.addItem(appItem)
+            NSApp.mainMenu = main
+        }
+        guard let main = NSApp.mainMenu else { return }
+        let hasEdit = main.items.contains { item in
+            let t = item.title
+            return t == "Bearbeiten" || t == "Edit"
+        }
+        if hasEdit { return }
+        let editMenuItem = NSMenuItem()
+        editMenuItem.title = "Bearbeiten"
+        let editMenu = NSMenu(title: "Bearbeiten")
+        editMenuItem.submenu = editMenu
+        addStandardEditMenuItems(to: editMenu)
+        if main.items.isEmpty {
+            main.addItem(editMenuItem)
+        } else {
+            main.insertItem(editMenuItem, at: 1)
+        }
+    }
+
+    private static func addStandardEditMenuItems(to menu: NSMenu) {
+        func add(_ title: String, _ action: Selector, _ key: String, _ mask: NSEvent.ModifierFlags = .command) {
+            let i = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            i.keyEquivalentModifierMask = mask
+            i.target = nil
+            menu.addItem(i)
+        }
+        add("Widerrufen", Selector(("undo:")), "z")
+        add("Wiederholen", Selector(("redo:")), "Z", [.command, .shift])
+        menu.addItem(.separator())
+        add("Ausschneiden", #selector(NSText.cut(_:)), "x")
+        add("Kopieren", #selector(NSText.copy(_:)), "c")
+        add("Einfügen", #selector(NSText.paste(_:)), "v")
+        add("Alles auswählen", #selector(NSText.selectAll(_:)), "a")
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -47,8 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         didStartLaunchFlow = true
         for url in urls {
-            let raw = url.isFileURL ? url.path : url.absoluteString
-            Task { await self.runLaunchArgument(raw) }
+            Task { await self.runLaunchArgument(url) }
         }
     }
 
@@ -58,8 +106,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return true
     }
 
+    /// Verhindert, dass macOS die LSUIElement-App wegoptimiert, sobald Java läuft und keine eigenen Fenster offen sind.
+    private var keepAliveActivity: NSObjectProtocol?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        keepAliveActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated],
+            reason: "FS Client Launcher (Menüleiste) bleibt aktiv"
+        )
         MenuBarExtraController.shared.installIfNeeded()
 
         let args = CommandLine.arguments.dropFirst().filter { arg in
@@ -70,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let first = args.first {
             // Doppelstart: macOS übergibt .fsclient oft in argv UND über openFile/openURLs.
             // Zwei parallele LaunchCoordinator-Läufe können fehlschlagen und NSApp.terminate auslösen.
-            if first.lowercased().hasSuffix(".fsclient") {
+            if first.lowercased().hasSuffix(".fsclient") || first.lowercased().hasSuffix(".jnlp") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                     guard let self else { return }
                     if !self.didStartLaunchFlow {
@@ -103,7 +158,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func launchFsClientFromMenuBar(path: String) {
         didStartLaunchFlow = true
-        Task { await runLaunchArgument(path) }
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let persistShortcut = !trimmed.lowercased().hasPrefix("fsclientlauncher:")
+        Task { await runLaunchArgument(path, persistShortcutAfterLaunch: persistShortcut) }
     }
 
     private func showConfigWindow() {
@@ -126,25 +183,80 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         configWindow = win
     }
 
-    /// Nur echte `.fsclient`-Pfade (kein `fsclientlauncher:`-URI).
-    static func normalizedFsClientPathIfAny(from raw: String) -> String? {
-        if raw.lowercased().hasPrefix("fsclientlauncher:") { return nil }
-        let path: String
-        if raw.hasPrefix("file:"), let u = URL(string: raw) {
-            path = u.path
-        } else {
-            path = raw
-        }
-        let std = (path as NSString).standardizingPath
-        guard std.lowercased().hasSuffix(".fsclient") else { return nil }
-        return std
+    private static func looksLikeHttpOrHttps(_ s: String) -> Bool {
+        let l = s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return l.hasPrefix("http://") || l.hasPrefix("https://")
     }
 
-    private func handleSuccessfulClientLaunch(settings: LauncherSettings, sourceRaw: String) {
+    private func handleSuccessfulClientLaunch(parsed: ParsedFsClientLaunch) {
+        guard parsed.persistShortcutAfterLaunch else {
+            MenuBarExtraController.shared.installIfNeeded()
+            return
+        }
         let store = FsClientShortcutsStore.shared
-        if let path = Self.normalizedFsClientPathIfAny(from: sourceRaw) {
-            let def = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
-            store.upsertAfterLaunch(filePath: path, defaultDisplayName: def)
+        let name = parsed.client.displayNameForShortcutMenu(
+            originalArgument: parsed.originalArgument,
+            localFilePath: parsed.localFilePath
+        )
+        do {
+            if parsed.openedFromDirectLocalFile, let local = parsed.localFilePath {
+                if AppPaths.isEphemeralFsClientPath(local), Self.looksLikeHttpOrHttps(parsed.originalArgument) {
+                    let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
+                    let displayURL = FsClientShortcutsStore.normalizeShortcutTarget(parsed.originalArgument)
+                    store.upsertAfterSuccessfulLaunch(
+                        sourceKey: parsed.originalArgument,
+                        displayPath: displayURL,
+                        importedFilePath: saved,
+                        defaultDisplayName: name
+                    )
+                } else if AppPaths.isEphemeralFsClientPath(local) {
+                    let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
+                    store.upsertAfterSuccessfulLaunch(
+                        sourceKey: parsed.originalArgument,
+                        displayPath: saved,
+                        importedFilePath: nil,
+                        defaultDisplayName: name
+                    )
+                } else {
+                    store.upsertAfterSuccessfulLaunch(
+                        sourceKey: parsed.originalArgument,
+                        displayPath: local,
+                        importedFilePath: nil,
+                        defaultDisplayName: name
+                    )
+                }
+            } else if Self.looksLikeHttpOrHttps(parsed.originalArgument) {
+                let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
+                let displayURL = FsClientShortcutsStore.normalizeShortcutTarget(parsed.originalArgument)
+                store.upsertAfterSuccessfulLaunch(
+                    sourceKey: parsed.originalArgument,
+                    displayPath: displayURL,
+                    importedFilePath: saved,
+                    defaultDisplayName: name
+                )
+            } else {
+                let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
+                store.upsertAfterSuccessfulLaunch(
+                    sourceKey: parsed.originalArgument,
+                    displayPath: parsed.originalArgument.trimmingCharacters(in: .whitespacesAndNewlines),
+                    importedFilePath: saved,
+                    defaultDisplayName: name
+                )
+            }
+        } catch {
+            fputs(
+                "FSClientLauncher: .fsclient konnte nicht unter ImportedFsClients gespeichert werden: \(error.localizedDescription)\n",
+                stderr
+            )
+            if Self.looksLikeHttpOrHttps(parsed.originalArgument) {
+                let displayURL = FsClientShortcutsStore.normalizeShortcutTarget(parsed.originalArgument)
+                store.upsertAfterSuccessfulLaunch(
+                    sourceKey: parsed.originalArgument,
+                    displayPath: displayURL,
+                    importedFilePath: nil,
+                    defaultDisplayName: name
+                )
+            }
         }
         MenuBarExtraController.shared.installIfNeeded()
     }
@@ -154,64 +266,101 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         MenuBarExtraController.shared.installIfNeeded()
     }
 
-    private func runLaunchArgument(_ raw: String) async {
-        let dedupeKey = Self.normalizedFsClientPathIfAny(from: raw)?.lowercased() ?? raw.lowercased()
-        if inFlightLaunchKeys.contains(dedupeKey) { return }
+    /// Öffnen über `application(_:open urls:)` — **http(s)-URLs** bleiben als `URL`-Objekt (kein Roundtrip `absoluteString` → erneutes Parsen).
+    private func runLaunchArgument(_ url: URL, persistShortcutAfterLaunch: Bool = true) async {
+        let dedupeKey = url.absoluteString.lowercased()
+        if inFlightLaunchKeys.contains(dedupeKey) {
+            LaunchLoadTrace.log("runLaunchArgument(URL): Dedupe — Start übersprungen, key=\(LaunchLoadTrace.preview(dedupeKey, max: 220))")
+            return
+        }
         inFlightLaunchKeys.insert(dedupeKey)
         defer { inFlightLaunchKeys.remove(dedupeKey) }
         do {
-            let launch = try LaunchConfiguration.parse(firstArgument: raw)
-            let settings = LauncherSettings.load()
-            if settings.DisplayConsole {
-                await MainActor.run {
-                    JavaProcessOutputWindow.shared.present()
-                }
-            }
-            try await LaunchCoordinator.run(
-                launch: launch,
-                settings: settings,
-                log: { line in
-                    if isatty(STDOUT_FILENO) != 0 {
-                        fputs(line, stdout)
-                        fflush(stdout)
-                    }
-                    if settings.DisplayConsole {
-                        JavaProcessOutputWindow.shared.append(line)
-                    }
-                },
-                versionContinue: { required, installed in
-                    await MainActor.run {
-                        let alert = NSAlert()
-                        alert.messageText = "FS Client Launcher aktualisieren?"
-                        alert.informativeText =
-                            "Der Broker verlangt mindestens Version \(required). Installiert ist \(installed).\n\nMit alter Version fortfahren?"
-                        alert.alertStyle = .warning
-                        alert.addButton(withTitle: "Fortfahren")
-                        alert.addButton(withTitle: "Abbrechen")
-                        return alert.runModal() == .alertFirstButtonReturn
-                    }
-                }
-            )
-            await MainActor.run {
-                handleSuccessfulClientLaunch(settings: settings, sourceRaw: raw)
-            }
+            let parsed = try await LaunchConfiguration.load(systemOpenURL: url, persistShortcutAfterLaunch: persistShortcutAfterLaunch)
+            try await runLaunchCoordinator(parsed: parsed)
         } catch is CancellationError {
             await MainActor.run { ensureTrayAfterLaunchFailure() }
         } catch {
+            LaunchLoadTrace.log("runLaunchArgument(URL): Fehler \(String(describing: type(of: error))) — \(error.localizedDescription)")
             await MainActor.run {
-                let settings = LauncherSettings.load()
-                if settings.DisplayConsole {
-                    JavaProcessOutputWindow.shared.present()
-                    JavaProcessOutputWindow.shared.append("\n—— Fehler: \(error.localizedDescription) ——\n")
-                }
-                let alert = NSAlert()
-                alert.messageText = "FS Client Launcher"
-                alert.informativeText = error.localizedDescription
-                alert.alertStyle = .critical
-                alert.runModal()
-                ensureTrayAfterLaunchFailure()
+                presentLaunchError(error)
             }
         }
+    }
+
+    private func runLaunchArgument(_ raw: String, persistShortcutAfterLaunch: Bool = true) async {
+        let dedupeKey = FsClientShortcutsStore.normalizeShortcutTarget(raw).lowercased()
+        if inFlightLaunchKeys.contains(dedupeKey) {
+            LaunchLoadTrace.log("runLaunchArgument(String): Dedupe — Start übersprungen, key=\(LaunchLoadTrace.preview(dedupeKey, max: 220))")
+            return
+        }
+        inFlightLaunchKeys.insert(dedupeKey)
+        defer { inFlightLaunchKeys.remove(dedupeKey) }
+        do {
+            let parsed = try await LaunchConfiguration.load(
+                firstArgument: raw,
+                persistShortcutAfterLaunch: persistShortcutAfterLaunch
+            )
+            try await runLaunchCoordinator(parsed: parsed)
+        } catch is CancellationError {
+            await MainActor.run { ensureTrayAfterLaunchFailure() }
+        } catch {
+            LaunchLoadTrace.log("runLaunchArgument(String): Fehler \(String(describing: type(of: error))) — \(error.localizedDescription)")
+            await MainActor.run {
+                presentLaunchError(error)
+            }
+        }
+    }
+
+    private func runLaunchCoordinator(parsed: ParsedFsClientLaunch) async throws {
+        let settings = LauncherSettings.load()
+        if settings.DisplayConsole {
+            await MainActor.run {
+                JavaProcessOutputWindow.shared.present()
+            }
+        }
+        try await LaunchCoordinator.run(
+            launch: parsed.client,
+            settings: settings,
+            log: { line in
+                if isatty(STDOUT_FILENO) != 0 {
+                    fputs(line, stdout)
+                    fflush(stdout)
+                }
+                if settings.DisplayConsole {
+                    JavaProcessOutputWindow.shared.append(line)
+                }
+            },
+            versionContinue: { required, installed in
+                await MainActor.run {
+                    let alert = NSAlert()
+                    alert.messageText = "FS Client Launcher aktualisieren?"
+                    alert.informativeText =
+                        "Der Broker verlangt mindestens Version \(required). Installiert ist \(installed).\n\nMit alter Version fortfahren?"
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "Fortfahren")
+                    alert.addButton(withTitle: "Abbrechen")
+                    return alert.runModal() == .alertFirstButtonReturn
+                }
+            }
+        )
+        await MainActor.run {
+            handleSuccessfulClientLaunch(parsed: parsed)
+        }
+    }
+
+    private func presentLaunchError(_ error: Error) {
+        let settings = LauncherSettings.load()
+        if settings.DisplayConsole {
+            JavaProcessOutputWindow.shared.present()
+            JavaProcessOutputWindow.shared.append("\n—— Fehler: \(error.localizedDescription) ——\n")
+        }
+        let alert = NSAlert()
+        alert.messageText = "FS Client Launcher"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .critical
+        alert.runModal()
+        ensureTrayAfterLaunchFailure()
     }
 }
 
@@ -238,7 +387,7 @@ private struct ConfigRootView: View {
                     }
                 FsClientShortcutsSettingsView(store: shortcutsStore)
                     .tabItem {
-                        Label("FS-Client-Dateien", systemImage: "doc.text")
+                        Label("Anwendungen", systemImage: "square.grid.2x2")
                     }
             }
             .padding(.horizontal, 12)
@@ -308,7 +457,7 @@ private struct ConfigRootView: View {
                 LabeledContent("Konfiguration") {
                     Text(AppPaths.launcherConfigURL.path).textSelection(.enabled)
                 }
-                LabeledContent("Menüleiste / FS-Client-Liste") {
+                LabeledContent("Menüleiste / Anwendungen") {
                     Text(AppPaths.fsClientShortcutsURL.path).textSelection(.enabled)
                 }
                 LabeledContent("Logdateien") {

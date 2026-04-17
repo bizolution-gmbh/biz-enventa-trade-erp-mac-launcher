@@ -32,6 +32,9 @@ final class JavaProcessOutputWindow: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
+        // Echtes Schließen kann bei LSUIElement/Accessory trotz `applicationShouldTerminateAfterLastWindowClosed == false`
+        // zum Beenden des Launchers führen; stattdessen nur ausblenden (`orderOut`).
+        w.isReleasedWhenClosed = false
         w.title = "Java-Ausgabe (Stdout/Stderr)"
         let scroll = NSScrollView(frame: rect)
         scroll.hasVerticalScroller = true
@@ -51,6 +54,12 @@ final class JavaProcessOutputWindow: NSObject, NSWindowDelegate {
         textView = tv
         w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard sender === window else { return true }
+        sender.orderOut(nil)
+        return false
     }
 
     func append(_ text: String) {
@@ -74,7 +83,7 @@ final class JavaProcessOutputWindow: NSObject, NSWindowDelegate {
         let block = { [weak self] in
             guard let self else { return }
             self.appendOnMain(
-                "\n—— Java-Prozess beendet (Exit-Code \(exitCode)). Das Ausgabefenster kann geschlossen werden; der Launcher bleibt aktiv (Menüleisten-Symbol). ——\n"
+                "\n—— Java-Prozess beendet (Exit-Code \(exitCode)). Das Fenster können Sie mit dem roten Symbol ausblenden; der Launcher bleibt aktiv (Menüleisten-Symbol). ——\n"
             )
         }
         if Thread.isMainThread {
@@ -99,7 +108,8 @@ final class JavaProcessOutputWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        // Nur Fenster freigeben: App und ggf. laufender Java-Kindprozess bleiben aktiv (Tray / Dock).
+        // Nur bei wirklichem `close()` (nicht beim üblichen Ausblenden über `windowShouldClose` + `orderOut`).
+        guard let win = notification.object as? NSWindow, win === window else { return }
         window = nil
         textView = nil
     }

@@ -1,12 +1,15 @@
 import AppKit
+import SwiftUI
 
-/// Menüleisten-Symbol (rechts oben) mit Zugriff auf Einstellungen und gespeicherte `.fsclient`-Dateien.
+/// Menüleisten-Symbol (rechts oben) mit Zugriff auf Einstellungen und registrierte Anwendungen.
 @MainActor
 final class MenuBarExtraController: NSObject {
     static let shared = MenuBarExtraController()
 
     private var statusItem: NSStatusItem?
     private var shortcutsObserver: NSObjectProtocol?
+    private var addApplicationWindow: NSWindow?
+    private var addApplicationWindowDelegate: AddApplicationWindowDelegate?
 
     var hasStatusItem: Bool { statusItem != nil }
 
@@ -69,15 +72,23 @@ final class MenuBarExtraController: NSObject {
 
         menu.addItem(.separator())
 
-        let header = NSMenuItem(title: "FS-Client-Dateien", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Anwendungen", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
+
+        let addItem = NSMenuItem(
+            title: "Anwendung hinzufügen …",
+            action: #selector(presentAddApplication(_:)),
+            keyEquivalent: ""
+        )
+        addItem.target = self
+        menu.addItem(addItem)
 
         let store = FsClientShortcutsStore.shared
         for rec in store.file.shortcuts {
             let mi = NSMenuItem(title: rec.displayName, action: #selector(openFsClient(_:)), keyEquivalent: "")
             mi.target = self
-            mi.representedObject = rec.path as NSString
+            mi.representedObject = rec.launchSourceForRunner as NSString
             menu.addItem(mi)
         }
 
@@ -105,6 +116,38 @@ final class MenuBarExtraController: NSObject {
         AppDelegate.shared?.showConfigWindowFromMenuBar()
     }
 
+    @objc private func presentAddApplication(_ sender: Any?) {
+        if let w = addApplicationWindow, w.isVisible {
+            w.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let store = FsClientShortcutsStore.shared
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 360),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Anwendung hinzufügen"
+        window.isReleasedWhenClosed = false
+        let del = AddApplicationWindowDelegate { [weak self] in
+            self?.addApplicationWindow = nil
+            self?.addApplicationWindowDelegate = nil
+        }
+        window.delegate = del
+        addApplicationWindowDelegate = del
+        addApplicationWindow = window
+        let root = FsClientShortcutSheet(store: store, sheetState: .add, onComplete: { [weak self] in
+            self?.addApplicationWindow?.close()
+        })
+        let hosting = NSHostingController(rootView: root)
+        window.contentViewController = hosting
+        window.center()
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
     @objc private func openFsClient(_ sender: Any?) {
         guard let item = sender as? NSMenuItem,
               let path = item.representedObject as? String
@@ -116,3 +159,18 @@ final class MenuBarExtraController: NSObject {
         NSApp.terminate(nil)
     }
 }
+
+// MARK: - Fenster für „Anwendung hinzufügen“ (Tray)
+
+private final class AddApplicationWindowDelegate: NSObject, NSWindowDelegate {
+    private let onClosed: () -> Void
+
+    init(onClosed: @escaping () -> Void) {
+        self.onClosed = onClosed
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        onClosed()
+    }
+}
+

@@ -1,4 +1,80 @@
+import AppKit
 import Foundation
+
+/// Hält laufende **java**-`Process`-Objekte und zugehörige Ressourcen fest, bis die JVM beendet ist — verhindert frühes `Process`-Deallok und Lebensdauer-Probleme der Menüleisten-App.
+private final class DetachedJavaProcessRegistry: @unchecked Sendable {
+    static let shared = DetachedJavaProcessRegistry()
+    private let lock = NSLock()
+
+    private enum Held {
+        /// Stdout/Stderr → Logdatei (ohne Konsole).
+        case detached(process: Process, log: FileHandle)
+        /// Stdout/Stderr → Pipes + optionales Ausgabefenster (mit Konsole).
+        case console(
+            process: Process,
+            out: Pipe,
+            err: Pipe,
+            showConsole: Bool,
+            log: (String) -> Void
+        )
+    }
+
+    private var entries: [Held] = []
+
+    func addDetached(process: Process, logHandle: FileHandle) {
+        lock.lock()
+        entries.append(.detached(process: process, log: logHandle))
+        lock.unlock()
+        process.terminationHandler = { proc in
+            DispatchQueue.main.async {
+                DetachedJavaProcessRegistry.shared.onProcessTerminated(proc)
+            }
+        }
+    }
+
+    func addConsole(process: Process, out: Pipe, err: Pipe, showConsole: Bool, log: @escaping (String) -> Void) {
+        lock.lock()
+        entries.append(.console(process: process, out: out, err: err, showConsole: showConsole, log: log))
+        lock.unlock()
+        process.terminationHandler = { proc in
+            DispatchQueue.main.async {
+                DetachedJavaProcessRegistry.shared.onProcessTerminated(proc)
+            }
+        }
+    }
+
+    private func onProcessTerminated(_ proc: Process) {
+        guard let held = takeEntry(for: proc) else { return }
+        switch held {
+        case .detached(_, let log):
+            try? log.close()
+        case .console(_, let out, let err, let showConsole, let log):
+            out.fileHandleForReading.readabilityHandler = nil
+            err.fileHandleForReading.readabilityHandler = nil
+            LaunchCoordinator.drainPipeRemainder(pipe: out, log: log)
+            LaunchCoordinator.drainPipeRemainder(pipe: err, log: log)
+            let code = proc.terminationStatus
+            if showConsole {
+                if code != 0 {
+                    JavaProcessOutputWindow.shared.present()
+                }
+                JavaProcessOutputWindow.shared.appendFooter(exitCode: code)
+            }
+        }
+    }
+
+    private func takeEntry(for proc: Process) -> Held? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let i = entries.firstIndex(where: {
+            switch $0 {
+            case .detached(let p, _): return p === proc
+            case .console(let p, _, _, _, _): return p === proc
+            }
+        }) else { return nil }
+        return entries.remove(at: i)
+    }
+}
 
 /// Orchestrierung: Broker laden, JARs cachen, Java starten — Port von `LaunchService`.
 enum LaunchCoordinator {
@@ -111,11 +187,6 @@ enum LaunchCoordinator {
         } catch {
             // optional — wie TraceWarning im Original
         }
-    }
-
-    /// Ein Argument für `bash -c` (POSIX: alles in einfache Anführungszeichen, `'` als `'\''`).
-    private static func shellSingleQuoted(_ s: String) -> String {
-        "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     private static func startJavaClient(
@@ -246,23 +317,20 @@ enum LaunchCoordinator {
                 if d.isEmpty { return }
                 if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
             }
-            p.waitUntilExit()
-            out.fileHandleForReading.readabilityHandler = nil
-            err.fileHandleForReading.readabilityHandler = nil
-            drainPipeRemainder(pipe: out, log: log)
-            drainPipeRemainder(pipe: err, log: log)
-            let exitCode = p.terminationStatus
-            if settings.DisplayConsole {
-                JavaProcessOutputWindow.shared.appendFooter(exitCode: exitCode)
-            }
-            if exitCode != 0 {
-                throw LaunchError.clientExit(exitCode)
-            }
+            let showConsole = settings.DisplayConsole
+            // `Process` + Pipes bis zum JVM-Ende im Registry halten; Aufräumen in `terminationHandler` auf dem Main Thread
+            // (kein `waitUntilExit` in einem `Task.detached`, damit der Menüleisten-Launcher nicht mit beendet wird).
+            DetachedJavaProcessRegistry.shared.addConsole(
+                process: p,
+                out: out,
+                err: err,
+                showConsole: showConsole,
+                log: log
+            )
         }
     }
 
-    /// Startet Java in einem kurzlebigen `bash`, damit der Kindprozess beim Beenden des Launchers nicht an Pipes hängt.
-    /// Ohne `DisplayConsole`: Launcher kann sich beenden, im Menü bleibt die Swing-/JavaFX-App mit `-Xdock:name` sichtbar.
+    /// Startet **java** direkt als Kindprozess (ohne `bash`), leitet Ausgabe in eine Logdatei und **hält** `Process` + `FileHandle`, damit der Launcher nicht beendet wird und keine Pipes offen bleiben.
     private static func startJavaClientDetached(
         javaPath: String,
         javaArguments: [String],
@@ -272,38 +340,30 @@ enum LaunchCoordinator {
     ) throws {
         try FileManager.default.createDirectory(at: AppPaths.logFilesDirectory, withIntermediateDirectories: true)
         let logURL = AppPaths.logFilesDirectory.appendingPathComponent("java-client-output.log", isDirectory: false)
-
-        let argv = ([javaPath] + javaArguments).map(shellSingleQuoted).joined(separator: " ")
-        let qJar = shellSingleQuoted(jarDir.path)
-        let qLog = shellSingleQuoted(logURL.path)
-        // Nicht-interaktives bash beendet Hintergrundjobs beim Exit üblicherweise nicht mit SIGHUP.
-        let script =
-            "set -e; cd \(qJar) || exit 2; \(argv) >>\(qLog) 2>&1 & sleep 0.22; if kill -0 $! 2>/dev/null; then exit 0; fi; wait $!; exit $?"
-
-        let bash = Process()
-        bash.executableURL = URL(fileURLWithPath: "/bin/bash")
-        bash.arguments = ["-c", script]
-        bash.currentDirectoryURL = jarDir
-        bash.environment = environment
-
-        let out = Pipe()
-        bash.standardOutput = out
-        bash.standardError = out
-        bash.standardInput = FileHandle.nullDevice
-
-        try bash.run()
-        bash.waitUntilExit()
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        if let tail = String(data: data, encoding: .utf8), !tail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            log(tail)
+        if !FileManager.default.fileExists(atPath: logURL.path) {
+            FileManager.default.createFile(atPath: logURL.path, contents: nil)
         }
-        let status = bash.terminationStatus
-        if status != 0 {
-            log(
-                "Java-Start fehlgeschlagen (Exit \(status)). Details in \(logURL.path)\n"
-            )
-            throw LaunchError.clientExit(status)
+        let logHandle = try FileHandle(forWritingTo: logURL)
+        logHandle.seekToEndOfFile()
+
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: javaPath)
+        p.arguments = javaArguments
+        p.currentDirectoryURL = jarDir
+        p.environment = environment
+        p.standardInput = FileHandle.nullDevice
+        p.standardOutput = logHandle
+        p.standardError = logHandle
+
+        try p.run()
+        Thread.sleep(forTimeInterval: 0.28)
+        if !p.isRunning {
+            let code = p.terminationStatus
+            try? logHandle.close()
+            log("Java-Start fehlgeschlagen (Exit \(code)). Details in \(logURL.path)\n")
+            throw LaunchError.clientExit(code)
         }
+        DetachedJavaProcessRegistry.shared.addDetached(process: p, logHandle: logHandle)
         log("Java gestartet (ohne Konsole). Stdout/Stderr: \(logURL.path)\n")
     }
 
@@ -314,7 +374,7 @@ enum LaunchCoordinator {
         }
     }
 
-    private static func drainPipeRemainder(pipe: Pipe, log: (String) -> Void) {
+    fileprivate static func drainPipeRemainder(pipe: Pipe, log: (String) -> Void) {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         if data.isEmpty { return }
         if let s = String(data: data, encoding: .utf8), !s.isEmpty {
