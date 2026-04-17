@@ -26,7 +26,8 @@ final class VersionPolicyTests: XCTestCase {
             return XCTFail("expected .mustUpdate")
         }
         XCTAssertEqual(req, "2.0")
-        XCTAssertEqual(ins, "1.0")
+        // `format` gibt bei gesetztem build/revision (≥ 0) vier Komponenten aus — siehe `VersionPolicy.format`.
+        XCTAssertEqual(ins, "1.0.0.0")
     }
 
     func testEvaluateSameMajorMinorButLowerPatchShouldAsk() {
