@@ -47,7 +47,6 @@ enum BrokerFetcher {
         guard let c = URLComponents(string: s) else {
             throw LaunchError.invalidBrokerURI(brokerBase)
         }
-        if c.path == "/" || c.path.isEmpty { /* ok */ }
         if let u = c.url {
             return brokerRootStrippingApiDefinitionURL(u)
         }
@@ -61,6 +60,13 @@ enum BrokerFetcher {
             }
         }
         throw LaunchError.invalidBrokerURI(brokerBase)
+    }
+
+    /// Nur **http(s)** mit nicht-leerem Host — verhindert z. B. `file:`- oder schemafreie URLs aus Broker-JSON (JAR-`href`, Splash).
+    static func isPermittedOutboundDownloadURL(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return false }
+        guard let host = url.host?.trimmingCharacters(in: .whitespacesAndNewlines), !host.isEmpty else { return false }
+        return true
     }
 
     /// Manche `.fsclient`-Dateien tragen im Feld `broker` die **komplette** Definitions-URL (`…/api/fsclient?…` / `…/api/jnlp?…`).

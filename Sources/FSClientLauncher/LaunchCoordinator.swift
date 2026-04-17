@@ -172,6 +172,7 @@ enum LaunchCoordinator {
         do {
             let brokerURL = (try? BrokerFetcher.normalizedBrokerURL(broker)) ?? URL(string: broker) ?? URL(fileURLWithPath: broker)
             let imageURL = URL(string: relativePath, relativeTo: brokerURL)?.absoluteURL ?? brokerURL.appendingPathComponent(relativePath)
+            guard BrokerFetcher.isPermittedOutboundDownloadURL(imageURL) else { return }
             let name = JarCache.escapeBrokerName(broker)
             let dir = AppPaths.jarCacheDirectory
                 .appendingPathComponent("files", isDirectory: true)

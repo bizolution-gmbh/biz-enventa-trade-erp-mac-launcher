@@ -176,7 +176,7 @@ fileprivate func resolveHttpURLFromUserString(_ raw: String) -> URL? {
     if var c = URLComponents(string: t) {
         if c.scheme == nil, l.hasPrefix("https://") { c.scheme = "https" }
         else if c.scheme == nil, l.hasPrefix("http://") { c.scheme = "http" }
-        if let sch = c.scheme?.lowercased(), sch == "http" || sch == "https", c.host != nil, let u = c.url, u.host != nil {
+        if let sch = c.scheme?.lowercased(), sch == "http" || sch == "https", c.host != nil, let u = c.url {
             return u
         }
     }
@@ -192,7 +192,7 @@ fileprivate func resolveHttpURLFromUserString(_ raw: String) -> URL? {
             if var c2 = URLComponents(string: d) {
                 if c2.scheme == nil, dl.hasPrefix("https://") { c2.scheme = "https" }
                 else if c2.scheme == nil, dl.hasPrefix("http://") { c2.scheme = "http" }
-                if let sch = c2.scheme?.lowercased(), sch == "http" || sch == "https", c2.host != nil, let u = c2.url, u.host != nil {
+                if let sch = c2.scheme?.lowercased(), sch == "http" || sch == "https", c2.host != nil, let u = c2.url {
                     return u
                 }
             }

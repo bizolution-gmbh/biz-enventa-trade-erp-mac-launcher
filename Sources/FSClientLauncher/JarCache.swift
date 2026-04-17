@@ -52,6 +52,9 @@ enum JarCache {
         if !jar.isNativeLib, FileManager.default.fileExists(atPath: finalJar.path) { return }
 
         let resolved = URL(string: jar.Href, relativeTo: baseJarUri)?.absoluteURL ?? baseJarUri.appendingPathComponent(jar.Href)
+        guard BrokerFetcher.isPermittedOutboundDownloadURL(resolved) else {
+            throw LaunchError.disallowedOutboundURL(jar.Href)
+        }
         let tempDir = AppPaths.jarCacheDirectory.appendingPathComponent("temp", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".download", isDirectory: false)
@@ -80,7 +83,6 @@ enum JarCache {
             try? FileManager.default.removeItem(at: tempFile)
             throw error
         }
-        try? FileManager.default.removeItem(at: tempFile)
     }
 
     private static func unzipNativeLib(tempZip: URL, destinationDir: URL) throws {

@@ -20,6 +20,8 @@ enum LaunchError: Error, LocalizedError {
     case fsclientRemoteHTTP(Int)
     /// Netzwerk-/URLSession-Fehler beim Abruf der Definitions-URL (nicht der HTTP-Status vom Server).
     case fsclientDefinitionDownloadFailed(url: String, reason: String)
+    /// Broker-JAR oder Splash verweist auf kein http(s) (z. B. `file:`) — wird aus Sicherheitsgründen abgelehnt.
+    case disallowedOutboundURL(String)
     var errorDescription: String? {
         switch self {
         case .missingBroker: "Im Startparameter fehlt der Schlüssel „broker“."
@@ -58,6 +60,8 @@ enum LaunchError: Error, LocalizedError {
             URL:
             \(url)
             """
+        case .disallowedOutboundURL(let hint):
+            "Download abgelehnt: Es sind nur http(s)-URLs mit Host erlaubt (Broker-Daten). Verworfen: \(hint)"
         }
     }
 }

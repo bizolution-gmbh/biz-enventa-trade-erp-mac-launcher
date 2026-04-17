@@ -97,3 +97,9 @@ Windows-ZIP: `~/Downloads/FS Client Launcher.zip` — relevant waren u. a. `FSCl
 ## Cursor / KI-Agenten
 
 Projektübergreifende Arbeits- und Qualitätsstandards für den Cursor-Agenten liegen **zentral** unter **`~/.cursor/rules/entwicklungsstandards.mdc`** (nicht im Repository). Dort ist `alwaysApply: true` gesetzt, damit die Regeln grundsätzlich gelten. Lokales `.cursor/` im Repo wird per `.gitignore` ausgeschlossen.
+
+## Sicherheit (Kurz)
+
+- **Broker-Daten:** JAR-`href` und Splash-Bild werden nur geladen, wenn die aufgelöste URL **`http`/`https`** mit Host ist (kein `file:` usw. aus manipuliertem Broker-JSON).
+- **App Transport Security:** In `Scripts/Info.plist` ist **`NSAllowsArbitraryLoads`** gesetzt, damit **http**-Broker und Firmen-Umgebungen funktionieren; das schwächt TLS-Striktheit zugunsten Kompatibilität — bei ausschließlich **https**-Betrieb könnte man das später einschränken (Ausnahmen pro Domain).
+- **Keine Geheimnisse im Code:** Broker-URLs und Konfiguration kommen vom Nutzer/Server, nicht aus dem Repository.
