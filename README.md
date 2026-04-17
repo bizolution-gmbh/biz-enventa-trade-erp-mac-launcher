@@ -93,3 +93,7 @@ Die Datei muss dasselbe **JSON** enthalten wie unter Windows (Schlüssel wie `br
 ## Analyse-Quelle
 
 Windows-ZIP: `~/Downloads/FS Client Launcher.zip` — relevant waren u. a. `FSClientLauncher.exe`, eingebettetes **JDK 11 (Zulu/Windows)** und die per **ILSpy** (`ilspycmd`) erzeugte C#-Referenzimplementierung.
+
+## Cursor / KI-Agenten
+
+Projektübergreifende Arbeits- und Qualitätsstandards für den Cursor-Agenten liegen **zentral** unter **`~/.cursor/rules/entwicklungsstandards.mdc`** (nicht im Repository). Dort ist `alwaysApply: true` gesetzt, damit die Regeln grundsätzlich gelten. Lokales `.cursor/` im Repo wird per `.gitignore` ausgeschlossen.
