@@ -278,7 +278,7 @@ func fsclientRemoteAPIURL(from raw: String) -> URL? {
     return u
 }
 
-/// Erkennt **Mac-Web**-Links, die eine JNLP-XML-Datei liefern (typisch `…/api/jnlp?…`, teils abweichende Pfade).
+/// Erkennt **http(s)**-Definitions-URLs mit **jnlp** im Pfad (typisch `…/api/jnlp?…`) — für Kürzel-Validierung und Umschreiben auf `…/api/fsclient…` vor dem Download.
 func jnlpRemoteAPIURL(from raw: String) -> URL? {
     let cleaned = stripLeadingGarbageBeforeHTTPScheme(raw)
     guard let u = resolveHttpURLFromUserString(cleaned) ?? httpRemoteAPIURL(from: cleaned) else { return nil }
@@ -313,7 +313,7 @@ struct ParsedFsClientLaunch: Sendable {
 }
 
 enum LaunchConfiguration {
-    /// Brücken-URL, damit ein **Lesezeichen / Verknüpfung** die echte JNLP-`http(s)`-URL an den Launcher übergibt (Browser startet keine fremden http-Links in Apps).
+    /// Brücken-URL, damit ein **Lesezeichen / Verknüpfung** die echte **http(s)**-Definitions-URL an den Launcher übergibt (Browser startet keine fremden http-Links in Apps).
     /// Form: `fsclientlauncher:jnlp?url=` + **eine** URL-Kodierung der Ziel-URL (`https%3A%2F%2F…%2Fapi%2Fjnlp%3F…`).
     static func embeddedHttpURLFromFsClientLauncherJnlpBridge(_ raw: String) -> String? {
         let t = sanitizeHttpURLUserInput(raw)
@@ -437,56 +437,6 @@ enum LaunchConfiguration {
         }
     }
 
-    /// Wie bei **.fsclient**-Definition-URLs: JNLP **herunterladen**, **temporär** als `.jnlp` ablegen, von Platte lesen, dann **.fsclient** laden und ebenfalls temporär ablegen (gleicher Pfad wie lokaler Doppelklick).
-    private static func loadFromRemoteJnlpDefinitionPage(
-        jnlpPage: URL,
-        displayArgument: String,
-        persistShortcutAfterLaunch: Bool
-    ) async throws -> ParsedFsClientLaunch {
-        LaunchLoadTrace.log("loadFromRemoteJnlpDefinitionPage: JNLP-Seite GET \(LaunchLoadTrace.preview(jnlpPage.absoluteString))")
-        let jnlpData: Data
-        switch try await downloadFsClientDefinition(from: jnlpPage) {
-        case .redirectToFsClientLauncher(let location):
-            LaunchLoadTrace.log(
-                "loadFromRemoteJnlpDefinitionPage: JNLP-GET Redirect (unerwartet) → \(LaunchLoadTrace.preview(location))"
-            )
-            throw LaunchError.jnlpInvalid(
-                "Die JNLP-Adresse lieferte eine Weiterleitung auf „fsclientlauncher:“ statt JNLP-XML. Location: \(LaunchLoadTrace.preview(location, max: 400))"
-            )
-        case .jsonData(let d):
-            jnlpData = d
-        }
-        let tempJnlp = try writeJnlpXmlToTemporaryFile(jnlpData)
-        defer { try? FileManager.default.removeItem(at: tempJnlp) }
-        let jnlpOnDisk = try Data(contentsOf: tempJnlp)
-        let fsURL = try resolveFsClientURL(fromJnlpXML: jnlpOnDisk)
-        LaunchLoadTrace.log("loadFromRemoteJnlpDefinitionPage: abgeleitete fsclient-URL \(LaunchLoadTrace.preview(fsURL.absoluteString))")
-        switch try await downloadFsClientDefinition(from: fsURL) {
-        case .redirectToFsClientLauncher(let location):
-            LaunchLoadTrace.log(
-                "loadFromRemoteJnlpDefinitionPage: fsclient-GET Redirect → fsclientlauncher: \(LaunchLoadTrace.preview(location))"
-            )
-            return try await loadFromFsClientLauncherString(
-                location,
-                originalArgument: displayArgument,
-                persistShortcutAfterLaunch: persistShortcutAfterLaunch
-            )
-        case .jsonData(let data):
-            let tempFs = try writeFsClientJsonToTemporaryFile(data)
-            let fromFile = try Data(contentsOf: tempFs)
-            let client = try decodeFsClient(from: fromFile)
-            let path = (tempFs.path as NSString).standardizingPath
-            return ParsedFsClientLaunch(
-                client: client,
-                jsonData: data,
-                openedFromDirectLocalFile: true,
-                localFilePath: path,
-                originalArgument: displayArgument,
-                persistShortcutAfterLaunch: persistShortcutAfterLaunch
-            )
-        }
-    }
-
     // MARK: - Eingabeauflösung (ein Pfad für alle Quellen)
 
     /// Erkennt **remote .fsclient-Definition** anhand der kanonischen `URL` (ohne erneutes Parsen des Strings).
@@ -498,7 +448,7 @@ enum LaunchConfiguration {
         return blob.contains("fsclient")
     }
 
-    /// **JNLP-Seite** anhand von `URL`-Pfad und `-absoluteString` — unabhängig von `URL.absoluteString` → erneutes Parsen (das war für `/api/jnlp` fehleranfällig).
+    /// **Definitions-URL mit „jnlp“ im Pfad** (z. B. `/api/jnlp`) anhand von `URL`-Pfad und `-absoluteString`.
     private static func urlLooksLikeRemoteJnlpPage(_ u: URL) -> Bool {
         let pathDec = (u.path.removingPercentEncoding ?? u.path).lowercased()
         let abs = u.absoluteString.lowercased()
@@ -523,38 +473,36 @@ enum LaunchConfiguration {
     ) async throws -> ParsedFsClientLaunch {
         let host = url.host ?? "(nil)"
         let sch = url.scheme ?? "(nil)"
+        let fsTarget: URL
+        if urlLooksLikeRemoteJnlpPage(url) {
+            fsTarget = rewriteRemoteJnlpDefinitionURLToFsClientAPI(url)
+            LaunchLoadTrace.log(
+                "loadHTTPURLConnection: jnlp-Pfad → fsclient-URL \(LaunchLoadTrace.preview(fsTarget.absoluteString))"
+            )
+        } else if let jnlpLike = jnlpRemoteAPIURL(from: displayArgument) ?? jnlpRemoteAPIURL(from: url.absoluteString) {
+            fsTarget = rewriteRemoteJnlpDefinitionURLToFsClientAPI(jnlpLike)
+            LaunchLoadTrace.log(
+                "loadHTTPURLConnection: jnlpRemoteAPIURL-Fallback → fsclient-URL \(LaunchLoadTrace.preview(fsTarget.absoluteString))"
+            )
+        } else {
+            fsTarget = url
+        }
         LaunchLoadTrace.log(
-            "loadHTTPURLConnection: scheme=\(sch) host=\(host) path=\(url.path) looksFsClient=\(urlLooksLikeRemoteFsClientDefinition(url)) looksJnlp=\(urlLooksLikeRemoteJnlpPage(url)) display=\(LaunchLoadTrace.preview(displayArgument))"
+            "loadHTTPURLConnection: scheme=\(sch) host=\(host) path=\(url.path) looksFsClient=\(urlLooksLikeRemoteFsClientDefinition(fsTarget)) display=\(LaunchLoadTrace.preview(displayArgument))"
         )
         guard let schL = url.scheme?.lowercased(), schL == "http" || schL == "https", url.host != nil else {
             LaunchLoadTrace.log("loadHTTPURLConnection: invalidURI — kein http(s) oder kein Host (scheme=\(sch) host=\(host))")
             throw LaunchError.invalidURI(displayArgument)
         }
-        // JNLP zuerst: `urlLooksLikeRemoteFsClientDefinition` nutzt ein breites `blob.contains("fsclient")` und kann sonst fälschlich vor JNLP greifen.
-        if urlLooksLikeRemoteJnlpPage(url) {
-            return try await loadFromRemoteJnlpDefinitionPage(
-                jnlpPage: url,
-                displayArgument: displayArgument,
-                persistShortcutAfterLaunch: persistShortcutAfterLaunch
-            )
-        }
-        if urlLooksLikeRemoteFsClientDefinition(url) {
+        if urlLooksLikeRemoteFsClientDefinition(fsTarget) {
             return try await loadFromRemoteFsClientDownloadURL(
-                remote: url,
-                displayArgument: displayArgument,
-                persistShortcutAfterLaunch: persistShortcutAfterLaunch
-            )
-        }
-        if let jnlpPage = jnlpRemoteAPIURL(from: displayArgument) ?? jnlpRemoteAPIURL(from: url.absoluteString) {
-            LaunchLoadTrace.log("loadHTTPURLConnection: JNLP über jnlpRemoteAPIURL-Fallback → \(LaunchLoadTrace.preview(jnlpPage.absoluteString))")
-            return try await loadFromRemoteJnlpDefinitionPage(
-                jnlpPage: jnlpPage,
+                remote: fsTarget,
                 displayArgument: displayArgument,
                 persistShortcutAfterLaunch: persistShortcutAfterLaunch
             )
         }
         LaunchLoadTrace.log(
-            "loadHTTPURLConnection: invalidURI — keine passende Remote-Definition (weder fsclient- noch jnlp-Erkennung). absolute=\(LaunchLoadTrace.preview(url.absoluteString))"
+            "loadHTTPURLConnection: invalidURI — keine passende Remote-Definition. absolute=\(LaunchLoadTrace.preview(url.absoluteString))"
         )
         throw LaunchError.invalidURI(displayArgument)
     }
@@ -563,35 +511,8 @@ enum LaunchConfiguration {
         LaunchLoadTrace.log("loadLocalFileLaunch: \(LaunchLoadTrace.preview(trimmedArgument))")
         let lower = trimmedArgument.lowercased()
         if lower.hasSuffix(".jnlp") {
-            let fileURL = resolveLocalFileURL(from: trimmedArgument)
-            guard FileManager.default.isReadableFile(atPath: fileURL.path) else {
-                LaunchLoadTrace.log("loadLocalFileLaunch: .jnlp nicht lesbar path=\(LaunchLoadTrace.preview(fileURL.path))")
-                throw LaunchError.invalidURI(trimmedArgument)
-            }
-            let jnlpData = try Data(contentsOf: fileURL)
-            let fsURL = try resolveFsClientURL(fromJnlpXML: jnlpData)
-            switch try await downloadFsClientDefinition(from: fsURL) {
-            case .redirectToFsClientLauncher(let location):
-                LaunchLoadTrace.log(
-                    "loadLocalFileLaunch: .jnlp → fsclientlauncher-Redirect: \(LaunchLoadTrace.preview(location))"
-                )
-                return try await loadFromFsClientLauncherString(
-                    location,
-                    originalArgument: trimmedArgument,
-                    persistShortcutAfterLaunch: persistShortcutAfterLaunch
-                )
-            case .jsonData(let data):
-                let client = try decodeFsClient(from: data)
-                let path = (fileURL.path as NSString).standardizingPath
-                return ParsedFsClientLaunch(
-                    client: client,
-                    jsonData: data,
-                    openedFromDirectLocalFile: true,
-                    localFilePath: path,
-                    originalArgument: trimmedArgument,
-                    persistShortcutAfterLaunch: persistShortcutAfterLaunch
-                )
-            }
+            LaunchLoadTrace.log("loadLocalFileLaunch: .jnlp wird nicht unterstützt")
+            throw LaunchError.invalidURI(trimmedArgument)
         }
         let fileURL = resolveLocalFileURL(from: trimmedArgument)
         LaunchLoadTrace.log("loadLocalFileLaunch: lese .fsclient/JSON von \(LaunchLoadTrace.preview(fileURL.path))")
@@ -709,88 +630,9 @@ enum LaunchConfiguration {
         return url
     }
 
-    /// Heruntergeladene **JNLP-XML** temporär ablegen (analog zur `.fsclient`-Definition), damit dieselbe Leselogik wie bei lokalen Dateien greift.
-    private static func writeJnlpXmlToTemporaryFile(_ data: Data) throws -> URL {
-        let name = "fsclient-remote-\(UUID().uuidString).jnlp"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name, isDirectory: false)
-        try data.write(to: url, options: .atomic)
-        return url
-    }
-
-    /// Liest `codebase` und `href` aus dem JNLP-Root, bildet die aufgelöste URL und wandelt sie in `…/api/fsclient?…` um (ohne `file=`).
-    private static func resolveFsClientURL(fromJnlpXML data: Data) throws -> URL {
-        let doc: XMLDocument
-        do {
-            doc = try XMLDocument(data: data, options: [])
-        } catch {
-            throw LaunchError.jnlpInvalid("XML konnte nicht gelesen werden: \(error.localizedDescription)")
-        }
-        guard let root = jnlpRootElement(in: doc) else {
-            throw LaunchError.jnlpInvalid("Erwartetes jnlp-Element fehlt.")
-        }
-        func attr(_ name: String) -> String? {
-            jnlpAttribute(root, localName: name)
-        }
-        guard let hrefRaw = attr("href"), !hrefRaw.isEmpty else {
-            throw LaunchError.jnlpInvalid("jnlp-Attribut href fehlt.")
-        }
-        let codebaseStr = attr("codebase")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        let mergedURL: URL
-        let lowerHref = hrefRaw.lowercased()
-        if lowerHref.hasPrefix("http://") || lowerHref.hasPrefix("https://") {
-            guard let u = URL(string: hrefRaw) else {
-                throw LaunchError.jnlpInvalid("Ungültiger absoluter href.")
-            }
-            mergedURL = u
-        } else {
-            guard !codebaseStr.isEmpty else {
-                throw LaunchError.jnlpInvalid("codebase fehlt für relativen href.")
-            }
-            guard let base = URL(string: codebaseStr) else {
-                throw LaunchError.jnlpInvalid("Ungültiger codebase.")
-            }
-            guard let rel = URL(string: hrefRaw, relativeTo: base) else {
-                throw LaunchError.jnlpInvalid("href konnte nicht mit codebase aufgelöst werden.")
-            }
-            mergedURL = rel.absoluteURL
-        }
-        return try transformJnlpResolvedURLToFsClientAPI(mergedURL)
-    }
-
-    private static func jnlpRootElement(in doc: XMLDocument) -> XMLElement? {
-        if let r = doc.rootElement() {
-            let ln = (r.localName ?? r.name ?? "").lowercased()
-            if ln == "jnlp" || ln.hasSuffix(":jnlp") { return r }
-        }
-        for case let node as XMLElement in doc.children ?? [] {
-            let ln = (node.localName ?? node.name ?? "").lowercased()
-            if ln == "jnlp" || ln.hasSuffix(":jnlp") { return node }
-        }
-        return nil
-    }
-
-    private static func jnlpAttribute(_ element: XMLElement, localName: String) -> String? {
-        func trim(_ s: String?) -> String? {
-            guard let t = s?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
-            return t
-        }
-        if let v = trim(element.attribute(forLocalName: localName, uri: nil)?.stringValue) { return v }
-        if let v = trim(element.attribute(forName: localName)?.stringValue) { return v }
-        let want = localName.lowercased()
-        for a in element.attributes ?? [] where a.kind == .attribute {
-            let n = (a.localName ?? a.name ?? "").lowercased()
-            if n == want || n.hasSuffix(":\(want)") {
-                return trim(a.stringValue)
-            }
-        }
-        return nil
-    }
-
-    private static func transformJnlpResolvedURLToFsClientAPI(_ url: URL) throws -> URL {
-        guard var comp = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            throw LaunchError.jnlpInvalid("URL-Komponenten fehlen.")
-        }
+    /// Baut aus einer **http(s)-Definitions-URL** mit **jnlp** im Pfad dieselbe URL mit `…/api/fsclient…` (ohne lokale `.jnlp`-Datei oder XML).
+    private static func rewriteRemoteJnlpDefinitionURLToFsClientAPI(_ url: URL) -> URL {
+        guard var comp = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         var path = comp.path
         if path.range(of: "/api/jnlp", options: .caseInsensitive) != nil {
             path = path.replacingOccurrences(of: "/api/jnlp", with: "/api/fsclient", options: .caseInsensitive)
@@ -804,10 +646,7 @@ enum LaunchConfiguration {
             items.removeAll { $0.name.caseInsensitiveCompare("file") == .orderedSame }
             comp.queryItems = items.isEmpty ? nil : items
         }
-        guard let out = comp.url else {
-            throw LaunchError.jnlpInvalid("fsclient-URL konnte nicht gebaut werden.")
-        }
-        return out
+        return comp.url ?? url
     }
 
     private enum FsClientDefinitionDownloadResult {
@@ -816,7 +655,7 @@ enum LaunchConfiguration {
         case redirectToFsClientLauncher(location: String)
     }
 
-    /// Lädt Rohbytes (JSON, JNLP, …) oder erkennt **302 → fsclientlauncher:** (Server startet den Launcher so).
+    /// Lädt Rohbytes (JSON) oder erkennt **302 → fsclientlauncher:** (Server startet den Launcher so).
     private static func downloadFsClientDefinition(from url: URL) async throws -> FsClientDefinitionDownloadResult {
         var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 120)
         req.setValue("*/*", forHTTPHeaderField: "Accept")

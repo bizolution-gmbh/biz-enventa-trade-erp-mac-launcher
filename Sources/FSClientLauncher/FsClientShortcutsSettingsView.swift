@@ -46,7 +46,7 @@ struct FsClientShortcutsSettingsView: View {
 
             Section {
                 Text(
-                    "HTTP(s)-Definition: `…/api/fsclient?…` — wird beim Start heruntergeladen, kurz als temporäre `.fsclient` gespeichert und wie eine lokale Datei geöffnet; eine Kopie landet unter Application Support (`ImportedFsClients`) für den nächsten Start. Lokal: `.fsclient` / `.jnlp`; JNLP-URLs und Brücke `fsclientlauncher:jnlp?url=…` wie zuvor. Anzeigename aus `title`, sofern vorhanden."
+                    "HTTP(s)-Definition: `…/api/fsclient?…` oder `…/api/jnlp?…` (wird intern auf fsclient umgeschrieben) — wird beim Start heruntergeladen, kurz als temporäre `.fsclient` gespeichert und wie eine lokale Datei geöffnet; eine Kopie landet unter Application Support (`ImportedFsClients`) für den nächsten Start. Lokal nur `.fsclient`. Brücke `fsclientlauncher:jnlp?url=…` für Lesezeichen. Anzeigename aus `title`, sofern vorhanden."
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)

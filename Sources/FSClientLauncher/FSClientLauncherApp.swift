@@ -125,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let first = args.first {
             // Doppelstart: macOS übergibt .fsclient oft in argv UND über openFile/openURLs.
             // Zwei parallele LaunchCoordinator-Läufe können fehlschlagen und NSApp.terminate auslösen.
-            if first.lowercased().hasSuffix(".fsclient") || first.lowercased().hasSuffix(".jnlp") {
+            if first.lowercased().hasSuffix(".fsclient") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                     guard let self else { return }
                     if !self.didStartLaunchFlow {

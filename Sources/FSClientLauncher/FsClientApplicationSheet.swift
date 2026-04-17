@@ -69,7 +69,7 @@ struct FsClientShortcutSheet: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 HStack(alignment: .center, spacing: 8) {
-                    TextField("http(s)://Server/Anwendung/api/fsclient?… — oder JNLP / lokale .fsclient", text: $pathText)
+                    TextField("http(s)://Server/Anwendung/api/fsclient?… — oder …/api/jnlp… / lokale .fsclient", text: $pathText)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .default))
                     Button {

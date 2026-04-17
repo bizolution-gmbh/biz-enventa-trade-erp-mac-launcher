@@ -143,7 +143,7 @@ final class FsClientShortcutsStore: ObservableObject {
         return nil
     }
 
-    /// Gültiges Kürzel: lokale `.fsclient`-Datei oder per **Definition-API** `…/api/fsclient…` / `jnlpRemoteAPIURL` / weiteren **fsclient**-URLs.
+    /// Gültiges Kürzel: lokale `.fsclient`-Datei oder per **Definition-API** `…/api/fsclient…` / `…/api/jnlp…` / weiteren **fsclient**-http(s)-URLs.
     nonisolated static func isValidShortcutTarget(_ raw: String) -> Bool {
         let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return false }
@@ -157,7 +157,7 @@ final class FsClientShortcutsStore: ObservableObject {
             if LaunchConfiguration.embeddedHttpURLFromFsClientLauncherJnlpBridge(t) != nil { return true }
             return LaunchConfiguration.isParsableFsClientLauncherLaunchURI(t)
         }
-        return lower.hasSuffix(".fsclient") || lower.hasSuffix(".jnlp")
+        return lower.hasSuffix(".fsclient")
     }
 
     var menuBarExtraEnabled: Bool {
