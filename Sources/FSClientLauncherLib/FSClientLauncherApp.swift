@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Einstiegspunkt für das ausführbare Ziel; wird von `Sources/FSClientLauncher/Main.swift` aufgerufen.
 public enum FSClientLauncherEntry {
+    @MainActor
     public static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
