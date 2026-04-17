@@ -77,10 +77,15 @@ final class MenuBarExtraController: NSObject {
         menu.addItem(header)
 
         let store = FsClientShortcutsStore.shared
+        // Mark der Java-/enventa-UI (`enventa-mark-cropped`): weiß auf transparent, `isTemplate` für Menüdarstellung.
+        let shortcutMark = TrayMarkTemplateRenderer.menuBarImage(side: 16)
+        shortcutMark.size = NSSize(width: 16, height: 16)
+
         for rec in store.file.shortcuts {
             let mi = NSMenuItem(title: rec.displayName, action: #selector(openFsClient(_:)), keyEquivalent: "")
             mi.target = self
             mi.representedObject = rec.launchSourceForRunner as NSString
+            mi.image = shortcutMark
             menu.addItem(mi)
         }
 
