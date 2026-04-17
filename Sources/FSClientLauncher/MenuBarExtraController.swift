@@ -76,14 +76,6 @@ final class MenuBarExtraController: NSObject {
         header.isEnabled = false
         menu.addItem(header)
 
-        let addItem = NSMenuItem(
-            title: "Anwendung hinzufügen …",
-            action: #selector(presentAddApplication(_:)),
-            keyEquivalent: ""
-        )
-        addItem.target = self
-        menu.addItem(addItem)
-
         let store = FsClientShortcutsStore.shared
         for rec in store.file.shortcuts {
             let mi = NSMenuItem(title: rec.displayName, action: #selector(openFsClient(_:)), keyEquivalent: "")
@@ -97,6 +89,16 @@ final class MenuBarExtraController: NSObject {
             empty.isEnabled = false
             menu.addItem(empty)
         }
+
+        menu.addItem(.separator())
+
+        let addItem = NSMenuItem(
+            title: "Anwendung hinzufügen …",
+            action: #selector(presentAddApplication(_:)),
+            keyEquivalent: ""
+        )
+        addItem.target = self
+        menu.addItem(addItem)
 
         menu.addItem(.separator())
 
