@@ -13,6 +13,13 @@ let package = Package(
         .target(
             name: "FSClientLauncherLib",
             path: "Sources/FSClientLauncherLib",
+            exclude: [
+                // Werden vom Build-Skript aus dem Arbeitsbaum gelesen/kopiert, nicht als SPM-Ressource eingebunden (vermeidet „unhandled files“-Warnung).
+                "Resources/AppIcon.icns",
+                "Resources/AppIcon.iconset",
+                "Resources/enventa-logo-full.svg",
+                "Resources/enventa-mark-cropped.svg",
+            ],
             resources: [
                 .copy("Resources/Icon.png"),
             ]

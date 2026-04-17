@@ -55,6 +55,8 @@ Hilfsskript (lädt Temurin 11/21 von Adoptium; Lizenz beachten):
 ```bash
 swift build -c release
 swift test
+# Wenn `swift test` mit „no such module XCTest“ scheitert: aktives Developer-Dir auf **Xcode.app** setzen
+# (`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`) — reine CLT-Umgebungen liefern XCTest mitunter nicht zuverlässig für SPM-Tests.
 # oder bei Problemen mit SwiftPM:
 swiftc -O Sources/FSClientLauncherLib/*.swift -o FSClientLauncher \
   -sdk "$(xcrun --sdk macosx --show-sdk-path)" -target arm64-apple-macosx13.0
