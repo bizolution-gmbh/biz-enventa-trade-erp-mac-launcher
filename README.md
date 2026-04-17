@@ -82,6 +82,15 @@ Die Datei muss dasselbe **JSON** enthalten wie unter Windows (Schlüssel wie `br
 
 - **URL-Schema** (wie unter Windows): Links im Stil `fsclientlauncher:launch?broker=…` öffnen die App mit dem passenden Handler.
 
+## Einstellungen › Anwendungen (technisch)
+
+Die Oberfläche nutzt kurze Alltagstexte; hier die gültigen Kürzel laut Code:
+
+- **Lokaler Pfad** zu einer **`.fsclient`**-JSON-Datei.
+- **http(s)-URL** zu einer Server-Definitionsseite (`…/api/fsclient?…` oder `…/api/jnlp?…`; `jnlp`-Pfade werden intern auf `fsclient` umgeschrieben).
+- **`fsclientlauncher:launch?…`** sowie die Brücke **`fsclientlauncher:jnlp?url=…`** (kodierte http(s)-Zieladresse).
+- Beim Speichern einer passenden http(s)-Definitions-URL kann der Launcher anbieten, sie in **`fsclientlauncher:launch?…`** umzuwandeln (analog zu typischen Server-Weiterleitungen).
+
 ## macOS-spezifische Abweichungen vom Windows-Original
 
 - Kein **`-Djavax.net.ssl.trustStoreType=Windows-ROOT`** (nur Windows); der Mac nutzt die Standard-TrustStore-Logik der mitgelieferten JVM.

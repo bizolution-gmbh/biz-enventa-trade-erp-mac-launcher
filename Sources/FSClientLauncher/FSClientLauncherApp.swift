@@ -428,6 +428,31 @@ private struct ConfigRootView: View {
     @ViewBuilder
     private var generalTab: some View {
         Form {
+            Section {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.title2)
+                        .accessibilityHidden(true)
+                    Text(
+                        "Dieser Launcher ist kein offizielles Produkt der enventa group. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
+                    )
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.orange.opacity(0.14))
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(
+                    "Hinweis: Dieser Launcher ist kein offizielles Produkt der enventa group. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
+                )
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+
             Section("Allgemein") {
                 Toggle(
                     "Konsole: Java-Flags (DisplayConsole, -DDisplayConsole) und Ausgabefenster (Stdout/Stderr)",

@@ -65,11 +65,11 @@ struct FsClientShortcutSheet: View {
                 .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Pfad oder URL")
+                Text("Adresse oder Datei")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 HStack(alignment: .center, spacing: 8) {
-                    TextField("http(s)://Server/Anwendung/api/fsclient?… — oder …/api/jnlp… / lokale .fsclient", text: $pathText)
+                    TextField("http…-Adresse einfügen oder Datei wählen", text: $pathText)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .default))
                     Button {
@@ -80,8 +80,13 @@ struct FsClientShortcutSheet: View {
                             .frame(minWidth: 28, minHeight: 26)
                     }
                     .buttonStyle(.bordered)
-                    .help("Datei auswählen …")
-                    .accessibilityLabel("Datei auswählen")
+                    .help("Datei wählen")
+                    .accessibilityLabel("Datei wählen")
+                }
+                if pathValidationShowsHint {
+                    Text("Bitte eine Web-Adresse mit http… oder eine .fsclient-Datei angeben.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -120,6 +125,12 @@ struct FsClientShortcutSheet: View {
         FsClientShortcutsStore.isValidShortcutTarget(pathText)
     }
 
+    /// Eingabe vorhanden, aber noch nicht gültig — kurzer Hinweis statt nur ausgegrautem OK.
+    private var pathValidationShowsHint: Bool {
+        let t = pathText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !t.isEmpty && !FsClientShortcutsStore.isValidShortcutTarget(pathText)
+    }
+
     private func closeAfterUserAction() {
         onComplete?()
         dismiss()
@@ -135,12 +146,9 @@ struct FsClientShortcutSheet: View {
            LaunchConfiguration.shouldOfferLauncherBridge(forHttpShortcut: rawPath),
            let built = LaunchConfiguration.fsClientLauncherLaunchURLFromWebDefinitionHTTP(rawPath) {
             let alert = NSAlert()
-            alert.messageText = "URL für macOS anpassen?"
-            alert.informativeText = """
-                Diese http(s)-Adresse zeigt auf …/api/jnlp oder …/api/fsclient. Unter macOS liefert die Webseite dafür oft keine herunterladbare .fsclient-Datei; der Server leitet stattdessen auf eine fsclientlauncher:launch-…-Adresse um.
-
-                Soll die Eingabe automatisch in eine solche fsclientlauncher:-URL umgewandelt werden (Parameter wie nach Server-Weiterleitung: Broker-Stamm, title, theme, language, lookAndFeel)?
-                """
+            alert.messageText = "Adresse für den Mac umwandeln?"
+            alert.informativeText =
+                "Diese Web-Adresse funktioniert auf dem Mac zuverlässiger, wenn sie umgewandelt wird. Soll das automatisch geschehen?"
             alert.alertStyle = .informational
             alert.addButton(withTitle: "Ja")
             alert.addButton(withTitle: "Nein")
@@ -179,8 +187,8 @@ struct FsClientShortcutSheet: View {
                 closeAfterUserAction()
             } else {
                 let alert = NSAlert()
-                alert.messageText = "Eintrag existiert bereits"
-                alert.informativeText = "Zu dieser URL bzw. diesem Pfad gibt es schon einen Eintrag. Jede Anwendung wird nur einmal gespeichert."
+                alert.messageText = "Schon vorhanden"
+                alert.informativeText = "Diese Adresse oder Datei ist bereits eingetragen."
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()

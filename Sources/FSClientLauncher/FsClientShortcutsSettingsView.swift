@@ -15,12 +15,10 @@ struct FsClientShortcutsSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Text(
-                    "Einträge erscheinen hier und im Tray unter „Anwendungen“. Doppelklick auf eine Kachel öffnet die Bearbeitungsmaske; im Tray-Menü steht „Anwendung hinzufügen …“."
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text("Einträge erscheinen hier und im Menü oben. Zum Bearbeiten doppelt auf eine Kachel tippen.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Section("Registrierte Anwendungen") {
@@ -45,12 +43,10 @@ struct FsClientShortcutsSettingsView: View {
             }
 
             Section {
-                Text(
-                    "HTTP(s)-Definition: `…/api/fsclient?…` oder `…/api/jnlp?…` (wird intern auf fsclient umgeschrieben) — wird beim Start heruntergeladen, kurz als temporäre `.fsclient` gespeichert und wie eine lokale Datei geöffnet; eine Kopie landet unter Application Support (`ImportedFsClients`) für den nächsten Start. Lokal nur `.fsclient`. Brücke `fsclientlauncher:jnlp?url=…` für Lesezeichen. Anzeigename aus `title`, sofern vorhanden."
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text("Neue Einträge: Adresse aus dem Browser (beginnt mit http…) einfügen oder eine .fsclient-Datei wählen. Der Titel kann frei vergeben werden.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)
