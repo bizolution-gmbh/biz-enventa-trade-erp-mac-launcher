@@ -1,0 +1,30 @@
+DMG wie bei Microsoft Edge / Bambu Studio („Installer“-Optik)
+==============================================================
+
+Standard-Layout (ohne Bild)
+---------------------------
+`Scripts/build_app.sh` erzeugt mit **create-dmg** ein **kleines Fenster** (ca. fünf Icon-Breiten),
+**App links**, **„Programme“ rechts**, Icons **gleich hoch** (Koordinaten im Skript anpassbar).
+
+Optionales Hintergrundbild
+---------------------------
+Große Hersteller-DMGs legen zusätzlich eine **PNG** ins Fenster (Pfeil, Text, freie Flächen).
+
+  Datei:  Scripts/dmg_install_background.png
+  Format: PNG (oder JPG/GIF, siehe `create-dmg --help`)
+  Größe:  Hintergrund-PNG **400 × 200** px (fest); `create-dmg --window-size` =
+  **400 × 200** px (siehe `dmg_layout_constants.sh`), **72 dpi**.
+
+Liegt die Datei vor, setzt das Skript **--background** und **--window-size** passend und positioniert
+die Icons proportional. Die PNG wird **nicht** ins DMG-Root kopiert (nur als Hintergrund).
+
+Das Motiv enthält **nur** Verlauf, Pfeil und Footer-Logo — **keine** App-/Programme-Icons in der PNG:
+Finder zeichnet die echten Icons darüber (mit System-Squircle). Gemalte Icons würden die Maske
+überdecken und wirkten „eckig“.
+
+`Scripts/dmg_finder_template.applescript` (create-dmg-Shim): Nach dem von create-dmg erzwungenen
+`close`/`open` setzt Finder Hintergrund und Icon-Orte oft zurück — das Skript wendet die
+create-dmg-Klauseln daher **zweimal** an und verzichtet auf das frühere „bounds minus 10“-Layout
+(kein Zittern, stabile Fenstergröße).
+
+Ohne PNG: kompaktes Zwei-Icon-Layout wie oben, neutraler Finder-Hintergrund.
