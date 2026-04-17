@@ -74,6 +74,31 @@ enum LauncherBrandingImages {
         return out
     }
 
+    /// Tray-Menü neben jedem Shortcut: dieselbe **Java-/FS-Client-**Marke wie `-Xdock:icon` (`Icon.png` + Superellipse).
+    static func trayMenuJavaApplicationIcon(pointSize: CGFloat = 16) -> NSImage? {
+        guard let src = sourceImageForJavaAndTiles() else { return nil }
+        let masked = dockApplicationIcon(from: src)
+        let s = max(8, pointSize)
+        let out = NSImage(size: NSSize(width: s, height: s), flipped: false) { rect in
+            NSColor.clear.set()
+            rect.fill()
+            let ms = masked.size
+            guard ms.width > 0, ms.height > 0 else { return true }
+            NSGraphicsContext.current?.imageInterpolation = .high
+            masked.draw(
+                in: rect,
+                from: NSRect(origin: .zero, size: ms),
+                operation: .sourceOver,
+                fraction: 1,
+                respectFlipped: true,
+                hints: nil
+            )
+            return true
+        }
+        out.isTemplate = false
+        return out
+    }
+
     /// Superellipse-Clip (Radius ~22 % der Kantenlänge) + Keyline-Einzug für Darstellung nahe am macOS-App-Icon-Raster.
     static func dockApplicationIcon(from source: NSImage) -> NSImage {
         let dim: CGFloat = 1024
