@@ -4,6 +4,7 @@
 !.cursor/rules/
 .cursor/rules/*
 !.cursor/rules/macos-apple-icons.mdc
+!.cursor/rules/fsclientlauncher-kurz.mdc
 .build/
 dist/
 .swiftpm/
