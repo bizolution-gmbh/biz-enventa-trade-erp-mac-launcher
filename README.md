@@ -30,6 +30,8 @@ Unter **`FS Client Launcher.app/Contents/Resources/`** erwartet der Launcher:
 
 Alternativ Umgebungsvariablen (wie im Original): **`FSCL_JDK11`**, **`FSCL_JDK21`**, **`FSCL_JRE8`** → jeweils **JAVA_HOME** (Ordner mit `bin/java`).
 
+In **Einstellungen › JVM-Argumente** erscheinen die **zusätzlichen** Felder für Java 8, 11 bzw. 21 nur, wenn die passende Laufzeit im App-Bundle oder per `FSCL_*` erkannt wird (nach App-Rückkehr in den Vordergrund oder beim Öffnen des Reiters erneut geprüft). Die **gemeinsamen** JVM-Argumente (alle Versionen) bleiben immer sichtbar.
+
 Hilfsskript (lädt Temurin 11/21 von Adoptium; Lizenz beachten):
 
 ```bash

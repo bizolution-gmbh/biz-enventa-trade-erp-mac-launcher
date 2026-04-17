@@ -366,11 +366,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
 private struct ConfigRootView: View {
     @EnvironmentObject private var shortcutsStore: FsClientShortcutsStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var settings = LauncherSettings.load()
     @State private var javaVmJoined = ""
     @State private var java8Joined = ""
     @State private var java11Joined = ""
     @State private var java21Joined = ""
+    @State private var java8RuntimePresent = false
+    @State private var java11RuntimePresent = false
+    @State private var java21RuntimePresent = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -407,6 +411,11 @@ private struct ConfigRootView: View {
             shortcutsStore.loadFromDisk()
             reloadSettingsState()
         }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                refreshJavaRuntimePresence()
+            }
+        }
     }
 
     private func reloadSettingsState() {
@@ -415,6 +424,32 @@ private struct ConfigRootView: View {
         java8Joined = settings.Java8VmArguments.joined(separator: "\n")
         java11Joined = settings.Java11VmArguments.joined(separator: "\n")
         java21Joined = settings.Java21VmArguments.joined(separator: "\n")
+        refreshJavaRuntimePresence()
+    }
+
+    private func refreshJavaRuntimePresence() {
+        let was8 = java8RuntimePresent
+        let was11 = java11RuntimePresent
+        let was21 = java21RuntimePresent
+        java8RuntimePresent = JavaRuntimeResolver.isJava8RuntimePresent()
+        java11RuntimePresent = JavaRuntimeResolver.isJava11RuntimePresent()
+        java21RuntimePresent = JavaRuntimeResolver.isJava21RuntimePresent()
+        let anyNewlyPresent =
+            (java8RuntimePresent && !was8) || (java11RuntimePresent && !was11) || (java21RuntimePresent && !was21)
+        guard anyNewlyPresent else { return }
+        let disk = LauncherSettings.load()
+        if java8RuntimePresent && !was8 {
+            java8Joined = disk.Java8VmArguments.joined(separator: "\n")
+            settings.Java8VmArguments = disk.Java8VmArguments
+        }
+        if java11RuntimePresent && !was11 {
+            java11Joined = disk.Java11VmArguments.joined(separator: "\n")
+            settings.Java11VmArguments = disk.Java11VmArguments
+        }
+        if java21RuntimePresent && !was21 {
+            java21Joined = disk.Java21VmArguments.joined(separator: "\n")
+            settings.Java21VmArguments = disk.Java21VmArguments
+        }
     }
 
     private func persistSettings() {
@@ -514,54 +549,73 @@ private struct ConfigRootView: View {
     private var jvmArgumentsTab: some View {
         Form {
             Section {
-                Text(
-                    "Eine Zeile pro JVM-Argument (z. B. -D…). Änderungen mit „Speichern“ oder ⌘S übernehmen."
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(jvmArgumentsTabIntro)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Section("Zusätzliche JVM-Argumente (alle Versionen, je Zeile)") {
                 TextEditor(text: $javaVmJoined)
                     .font(.system(.body, design: .monospaced))
                     .frame(minHeight: 72)
             }
-            Section {
-                TextEditor(text: $java8Joined)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 56)
-                Button("Auf macOS-Standard zurücksetzen") {
-                    java8Joined = LauncherSettings.recommendedJava8VmArgumentsForMacOS.joined(separator: "\n")
-                }
-            } header: {
-                Text("Java 8")
-            } footer: {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(
-                        "Ist die Java-8-Liste leer, trägt der Launcher macOS-Swing-Standards ein (Menüleiste oben, Anwendungsname, Titelleisten-Erscheinungsbild, Aqua-LAF)."
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    Link(
-                        "FlatLaf – Hinweise für macOS",
-                        destination: URL(string: "https://www.formdev.com/flatlaf/macos/")!
-                    )
-                    .font(.footnote)
+            if java8RuntimePresent {
+                Section {
+                    TextEditor(text: $java8Joined)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 56)
+                    Button("Auf macOS-Standard zurücksetzen") {
+                        java8Joined = LauncherSettings.recommendedJava8VmArgumentsForMacOS.joined(separator: "\n")
+                    }
+                } header: {
+                    Text("Java 8")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(
+                            "Ist die Java-8-Liste leer, trägt der Launcher beim nächsten Laden die macOS-Swing-Standards ein (wenn Java 8 verfügbar ist)."
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        Link(
+                            "FlatLaf – Hinweise für macOS",
+                            destination: URL(string: "https://www.formdev.com/flatlaf/macos/")!
+                        )
+                        .font(.footnote)
+                    }
                 }
             }
-            Section("Java 11") {
-                TextEditor(text: $java11Joined)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 56)
+            if java11RuntimePresent {
+                Section("Java 11") {
+                    TextEditor(text: $java11Joined)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 56)
+                }
             }
-            Section("Java 21") {
-                TextEditor(text: $java21Joined)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 56)
+            if java21RuntimePresent {
+                Section("Java 21") {
+                    TextEditor(text: $java21Joined)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 56)
+                }
             }
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            refreshJavaRuntimePresence()
+        }
+    }
+
+    private var jvmArgumentsTabIntro: String {
+        var parts: [String] = [
+            "Eine Zeile pro JVM-Argument (z. B. -D…). Änderungen mit „Speichern“ oder ⌘S übernehmen."
+        ]
+        if !java8RuntimePresent || !java11RuntimePresent || !java21RuntimePresent {
+            parts.append(
+                "Zusätzliche Felder für Java 8, 11 oder 21 erscheinen automatisch, sobald die passende Laufzeit in der App liegt oder per FSCL_JRE8 / FSCL_JDK11 / FSCL_JDK21 erreichbar ist."
+            )
+        }
+        return parts.joined(separator: " ")
     }
 
     private func splitLines(_ s: String) -> [String] {

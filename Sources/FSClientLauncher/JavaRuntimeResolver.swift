@@ -47,6 +47,51 @@ enum JavaRuntimeResolver {
         }
     }
 
+    // MARK: - Verfügbarkeit (Einstellungen-UI, ohne Start)
+
+    static func isJava8RuntimePresent() -> Bool {
+        locateJava8ExecutableIfPresent() != nil
+    }
+
+    static func isJava11RuntimePresent() -> Bool {
+        locateJDKExecutableIfPresent(version: 11) != nil
+    }
+
+    static func isJava21RuntimePresent() -> Bool {
+        locateJDKExecutableIfPresent(version: 21) != nil
+    }
+
+    private static func locateJava8ExecutableIfPresent() -> URL? {
+        if let override = ProcessInfo.processInfo.environment["FSCL_JRE8"], !override.isEmpty {
+            let home = URL(fileURLWithPath: override, isDirectory: true)
+            let java = home.appendingPathComponent("bin/java")
+            guard FileManager.default.isExecutableFile(atPath: java.path) else { return nil }
+            return java
+        }
+        let root = AppPaths.launcherRuntimeBaseDirectory.appendingPathComponent("jre8", isDirectory: true)
+        let fm = FileManager.default
+        guard let subs = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else {
+            return findJavaRecursively(under: root)
+        }
+        for sub in subs where sub.lastPathComponent.lowercased().hasPrefix("update") || sub.lastPathComponent.contains(".") {
+            let java = sub.appendingPathComponent("bin/java")
+            if fm.isExecutableFile(atPath: java.path) { return java }
+        }
+        return findJavaRecursively(under: root)
+    }
+
+    private static func locateJDKExecutableIfPresent(version: Int) -> URL? {
+        let envKey = "FSCL_JDK\(version)"
+        if let override = ProcessInfo.processInfo.environment[envKey], !override.isEmpty {
+            let home = URL(fileURLWithPath: override, isDirectory: true)
+            let java = home.appendingPathComponent("bin/java")
+            guard FileManager.default.isExecutableFile(atPath: java.path) else { return nil }
+            return java
+        }
+        let root = AppPaths.launcherRuntimeBaseDirectory.appendingPathComponent("jdk\(version)", isDirectory: true)
+        return findJavaRecursively(under: root)
+    }
+
     static func readJvmArchitecture(javaExecutable: URL) -> String? {
         let p = Process()
         p.executableURL = javaExecutable
@@ -84,45 +129,32 @@ enum JavaRuntimeResolver {
 
     private static func findJDK(version: Int) throws -> URL {
         let envKey = "FSCL_JDK\(version)"
-        if let override = ProcessInfo.processInfo.environment[envKey], !override.isEmpty {
-            let home = URL(fileURLWithPath: override, isDirectory: true)
-            let java = home.appendingPathComponent("bin/java")
-            guard FileManager.default.isExecutableFile(atPath: java.path) else {
+        let root = AppPaths.launcherRuntimeBaseDirectory.appendingPathComponent("jdk\(version)", isDirectory: true)
+        guard let java = locateJDKExecutableIfPresent(version: version) else {
+            if let override = ProcessInfo.processInfo.environment[envKey], !override.isEmpty {
                 throw LaunchError.javaHomeMissing(
                     "Umgebungsvariable \(envKey) zeigt auf kein gültiges JDK (erwartet bin/java)."
                 )
             }
-            return java
+            throw LaunchError.javaHomeMissing(
+                "Kein eingebettetes JDK \(version) unter \(root.path) gefunden. Legen Sie z. B. ein Temurin-JDK dort ab oder setzen Sie \(envKey)."
+            )
         }
-        let root = AppPaths.launcherRuntimeBaseDirectory.appendingPathComponent("jdk\(version)", isDirectory: true)
-        if let java = findJavaRecursively(under: root) {
-            return java
-        }
-        throw LaunchError.javaHomeMissing(
-            "Kein eingebettetes JDK \(version) unter \(root.path) gefunden. Legen Sie z. B. ein Temurin-JDK dort ab oder setzen Sie \(envKey)."
-        )
+        return java
     }
 
     private static func findJava8() throws -> URL {
-        if let override = ProcessInfo.processInfo.environment["FSCL_JRE8"], !override.isEmpty {
-            let home = URL(fileURLWithPath: override, isDirectory: true)
-            let java = home.appendingPathComponent("bin/java")
-            guard FileManager.default.isExecutableFile(atPath: java.path) else {
+        let root = AppPaths.launcherRuntimeBaseDirectory.appendingPathComponent("jre8", isDirectory: true)
+        guard let java = locateJava8ExecutableIfPresent() else {
+            if let override = ProcessInfo.processInfo.environment["FSCL_JRE8"], !override.isEmpty {
                 throw LaunchError.javaHomeMissing("FSCL_JRE8 ist kein gültiges JRE 8 (bin/java fehlt).")
             }
-            return java
+            if (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) == nil {
+                throw LaunchError.javaHomeMissing("Kein JRE 8 unter \(root.path). Setzen Sie FSCL_JRE8 oder liefern Sie jre8/ mit.")
+            }
+            throw LaunchError.javaHomeMissing("Kein JRE 8 unter \(root.path) gefunden.")
         }
-        let root = AppPaths.launcherRuntimeBaseDirectory.appendingPathComponent("jre8", isDirectory: true)
-        let fm = FileManager.default
-        guard let subs = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else {
-            throw LaunchError.javaHomeMissing("Kein JRE 8 unter \(root.path). Setzen Sie FSCL_JRE8 oder liefern Sie jre8/ mit.")
-        }
-        for sub in subs where sub.lastPathComponent.lowercased().hasPrefix("update") || sub.lastPathComponent.contains(".") {
-            let java = sub.appendingPathComponent("bin/java")
-            if fm.isExecutableFile(atPath: java.path) { return java }
-        }
-        if let java = findJavaRecursively(under: root) { return java }
-        throw LaunchError.javaHomeMissing("Kein JRE 8 unter \(root.path) gefunden.")
+        return java
     }
 
     private static func findJavaRecursively(under root: URL) -> URL? {

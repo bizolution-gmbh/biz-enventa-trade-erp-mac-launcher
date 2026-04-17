@@ -66,7 +66,9 @@ struct LauncherSettings: Codable, Equatable {
                 base = LauncherSettings()
             }
             var s = base
-            s.applyRecommendedMacJava8JvmArgumentsIfNeeded()
+            if JavaRuntimeResolver.isJava8RuntimePresent() {
+                s.applyRecommendedMacJava8JvmArgumentsIfNeeded()
+            }
             return s
         }
     }
