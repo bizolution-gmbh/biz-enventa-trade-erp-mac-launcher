@@ -9,5 +9,6 @@ alwaysApply: true
 - **Kein** Einlesen lokaler **`.jnlp`**-Dateien; **`/api/jnlp`** in http-URLs wird intern auf **`/api/fsclient`** umgeschrieben, dann Download wie `.fsclient`.
 - **Pfade:** `AppPaths` → `~/Library/Application Support/enventa Group/FS Client Launcher/` und `~/Library/Caches/…`; JDKs unter `…/Contents/Resources/jdk11|jdk21|jre8` oder **`FSCL_JDK11`**, **`FSCL_JDK21`**, **`FSCL_JRE8`**.
 - **Einstellungen:** JVM-Argumente **pro Java-Hauptversion** nur anzeigen, wenn `JavaRuntimeResolver` die Laufzeit findet; gemeinsame JVM-Args immer.
+- **Quellcode:** Swift unter `Sources/FSClientLauncherLib/`; Executable nur `Sources/FSClientLauncher/Main.swift`.
 - **DMG:** `Scripts/build_app.sh` + `create-dmg`; **Volicon** = `AppIcon.icns`; Hintergrund `RenderDMGBackground.swift` / `dmg_layout_constants.sh`.
 - **Technische Details:** `README.md` im Repository.
