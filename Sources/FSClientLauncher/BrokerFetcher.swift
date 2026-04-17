@@ -2,6 +2,29 @@ import Foundation
 
 /// Lädt `api/jardownload` bzw. bei HTTP 404 den Fallback `JarDownload.ashx` — wie `LaunchService.DownloadBrokerInfo`.
 enum BrokerFetcher {
+    private final class OutboundRedirectDelegate: NSObject, URLSessionTaskDelegate {
+        func urlSession(
+            _ session: URLSession,
+            task: URLSessionTask,
+            willPerformHTTPRedirection response: HTTPURLResponse,
+            newRequest request: URLRequest,
+            completionHandler: @escaping (URLRequest?) -> Void
+        ) {
+            HTTPOutboundRedirectPolicy.respondToRedirect(
+                context: "BrokerFetcher",
+                response: response,
+                newRequest: request,
+                completionHandler: completionHandler
+            )
+        }
+    }
+
+    private static let outboundRedirectDelegate = OutboundRedirectDelegate()
+    /// Eine Session für Broker-, JAR- und Splash-Downloads: gleiche Proxy-/Ephemeral-Konfiguration und **strikte HTTP-Redirect-Policy**.
+    private static let outboundURLSession: URLSession = {
+        URLSession(configuration: urlSessionConfiguration(), delegate: outboundRedirectDelegate, delegateQueue: nil)
+    }()
+
     static func downloadJarDownloadPayload(brokerBase: String) async throws -> Data {
         let brokerURL = try normalizedBrokerURL(brokerBase)
         return try await attemptJarDownload(fromBrokerRoot: brokerURL)
@@ -97,9 +120,12 @@ enum BrokerFetcher {
     private static func dataRequest(url: URL) async throws -> (Data, URLResponse) {
         var req = URLRequest(url: url)
         req.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
-        let config = urlSessionConfiguration()
-        let session = URLSession(configuration: config)
-        return try await session.data(for: req)
+        return try await outboundURLSession.data(for: req)
+    }
+
+    /// Gemeinsame `URLSession` mit Redirect-Filter — für JAR-, Splash- und ggf. weitere Broker-HTTP(s)-Downloads.
+    static func sharedOutboundURLSession() -> URLSession {
+        outboundURLSession
     }
 
     /// Gemeinsame `URLSessionConfiguration` für Broker- und JAR-Downloads (System-Proxy wie in den macOS-Netzwerkeinstellungen).

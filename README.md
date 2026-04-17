@@ -100,6 +100,6 @@ Projektübergreifende Arbeits- und Qualitätsstandards für den Cursor-Agenten l
 
 ## Sicherheit (Kurz)
 
-- **Broker-Daten:** JAR-`href` und Splash-Bild werden nur geladen, wenn die aufgelöste URL **`http`/`https`** mit Host ist (kein `file:` usw. aus manipuliertem Broker-JSON).
+- **Broker-Daten:** JAR-`href` und Splash-Bild werden nur geladen, wenn die aufgelöste URL **`http`/`https`** mit Host ist (kein `file:` usw. aus manipuliertem Broker-JSON). **HTTP-Weiterleitungen** bei Broker-, JAR- und Splash-Downloads folgen nur **http(s)** mit Host; **`fsclientlauncher:`**-Redirects werden nicht per HTTP nachverfolgt (gleiche Policy wie beim `.fsclient`-Definitions-Download).
 - **App Transport Security:** In `Scripts/Info.plist` ist **`NSAllowsArbitraryLoads`** gesetzt, damit **http**-Broker und Firmen-Umgebungen funktionieren; das schwächt TLS-Striktheit zugunsten Kompatibilität — bei ausschließlich **https**-Betrieb könnte man das später einschränken (Ausnahmen pro Domain).
 - **Keine Geheimnisse im Code:** Broker-URLs und Konfiguration kommen vom Nutzer/Server, nicht aus dem Repository.

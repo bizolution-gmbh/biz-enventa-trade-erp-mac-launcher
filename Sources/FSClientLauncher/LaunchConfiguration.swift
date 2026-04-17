@@ -799,7 +799,6 @@ enum LaunchConfiguration {
     }
 }
 
-/// Nur **http/https**-Weiterleitungen zulassen — sonst bricht `URLSession` oft mit **NSURLError -1002** ab („URL nicht unterstützt“).
 private final class FsClientDefinitionSessionDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(
         _ session: URLSession,
@@ -808,34 +807,11 @@ private final class FsClientDefinitionSessionDelegate: NSObject, URLSessionTaskD
         newRequest request: URLRequest,
         completionHandler: @escaping (URLRequest?) -> Void
     ) {
-        guard let next = request.url else {
-            LaunchLoadTrace.log("downloadFsClientDefinition: Redirect ohne Ziel-URL (HTTP \(response.statusCode))")
-            completionHandler(nil)
-            return
-        }
-        let sch = next.scheme?.lowercased() ?? ""
-        if sch == "fsclientlauncher" {
-            LaunchLoadTrace.log(
-                "downloadFsClientDefinition: HTTP \(response.statusCode) Weiterleitung auf fsclientlauncher (kein HTTP-Follow; Ziel steht in der 302-Location): \(LaunchLoadTrace.preview(next.absoluteString))"
-            )
-            completionHandler(nil)
-            return
-        }
-        guard sch == "http" || sch == "https" else {
-            LaunchLoadTrace.log(
-                "downloadFsClientDefinition: HTTP \(response.statusCode) Weiterleitung abgelehnt — Schema „\(sch)“: \(LaunchLoadTrace.preview(next.absoluteString))"
-            )
-            completionHandler(nil)
-            return
-        }
-        guard let host = next.host, !host.isEmpty else {
-            LaunchLoadTrace.log("downloadFsClientDefinition: Redirect abgelehnt (ohne Host) HTTP \(response.statusCode)")
-            completionHandler(nil)
-            return
-        }
-        LaunchLoadTrace.log(
-            "downloadFsClientDefinition: folge HTTP-Redirect \(response.statusCode) → \(LaunchLoadTrace.preview(next.absoluteString))"
+        HTTPOutboundRedirectPolicy.respondToRedirect(
+            context: "downloadFsClientDefinition",
+            response: response,
+            newRequest: request,
+            completionHandler: completionHandler
         )
-        completionHandler(request)
     }
 }

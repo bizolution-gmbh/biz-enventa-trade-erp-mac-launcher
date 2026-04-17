@@ -61,7 +61,7 @@ enum JarCache {
 
         do {
             let req = URLRequest(url: resolved)
-            let session = URLSession(configuration: BrokerFetcher.urlSessionConfiguration())
+            let session = BrokerFetcher.sharedOutboundURLSession()
             let (localURL, response) = try await session.download(for: req)
             guard let http = response as? HTTPURLResponse, (200 ... 299).contains(http.statusCode) else {
                 throw LaunchError.brokerHTTP((response as? HTTPURLResponse)?.statusCode ?? -1)

@@ -182,7 +182,7 @@ enum LaunchCoordinator {
             let dest = dir.appendingPathComponent("SplashImage.png")
             try? FileManager.default.removeItem(at: dest)
             let req = URLRequest(url: imageURL)
-            let (data, resp) = try await URLSession(configuration: BrokerFetcher.urlSessionConfiguration()).data(for: req)
+            let (data, resp) = try await BrokerFetcher.sharedOutboundURLSession().data(for: req)
             guard let http = resp as? HTTPURLResponse, (200 ... 299).contains(http.statusCode) else { return }
             try data.write(to: dest)
         } catch {
