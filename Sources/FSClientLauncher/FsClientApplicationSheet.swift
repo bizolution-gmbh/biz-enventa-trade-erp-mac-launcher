@@ -175,11 +175,20 @@ struct FsClientShortcutSheet: View {
         }
 
         if isAddMode {
-            store.addRecord(path: norm, displayName: finalName)
+            if store.addRecord(path: norm, displayName: finalName) {
+                closeAfterUserAction()
+            } else {
+                let alert = NSAlert()
+                alert.messageText = "Eintrag existiert bereits"
+                alert.informativeText = "Zu dieser URL bzw. diesem Pfad gibt es schon einen Eintrag. Jede Anwendung wird nur einmal gespeichert."
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
         } else if let id = recordId {
             store.updateRecord(id: id, displayName: finalName, path: norm)
+            closeAfterUserAction()
         }
-        closeAfterUserAction()
     }
 
     private func pickFsClientFile() {

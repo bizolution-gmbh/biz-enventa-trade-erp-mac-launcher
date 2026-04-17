@@ -236,21 +236,19 @@ final class FsClientShortcutsStore: ObservableObject {
         saveToDisk()
     }
 
-    func addRecord(path: String, displayName: String) {
+    /// Legt einen **neuen** Eintrag an. `upsertAfterSuccessfulLaunch` ist nur für „nach erfolgreichem Start“ gedacht —
+    /// bei gleicher URL/Pfad wie ein bestehender Eintrag passiert hier **kein** Überschreiben.
+    @discardableResult
+    func addRecord(path: String, displayName: String) -> Bool {
         let norm = Self.normalizeShortcutTarget(path)
         if file.shortcuts.contains(where: { Self.normalizeShortcutTarget($0.path) == norm }) {
-            upsertAfterSuccessfulLaunch(
-                sourceKey: norm,
-                displayPath: norm,
-                importedFilePath: nil,
-                defaultDisplayName: displayName
-            )
-            return
+            return false
         }
         var f = file
         f.shortcuts.append(FsClientShortcutRecord(id: UUID(), path: norm, importedFilePath: nil, displayName: displayName))
         file = f
         saveToDisk()
+        return true
     }
 
     /// Entfernt nur Dateien unter unserem `ImportedFsClients`-Verzeichnis.
