@@ -13,7 +13,7 @@ Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Clie
 - JAR-Cache unter **`~/Library/Caches/enventa Group/FS Client Launcher/.jarcache/`** (Trennung Roaming vs. Local wie unter Windows).
 - Logdateien unter **`~/Library/Application Support/enventa Group/FS Client Launcher/Logfiles/`** (wie `Logfiles` unter Windows).
 - **Cache-Bereinigung** wie `CacheService.CleanupCache` inkl. Logdatei-Bereinigung; in der Konfiguration steuerbar und nach dem Java-Lauf parallel ausgeführt.
-- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/FSClientLauncher/Resources/` und wird in die `.app` kopiert. **Finder-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `swift` aus den Xcode Command Line Tools, weißer Rand, PNG-Normalisierung für `iconutil`).
+- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/FSClientLauncher/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
 - **Java-Dock & Kacheln:** `Sources/FSClientLauncher/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
 
 ## JDK / JRE mitliefern
@@ -117,7 +117,9 @@ Windows-ZIP: `~/Downloads/FS Client Launcher.zip` — relevant waren u. a. `FSCl
 
 ## Cursor / KI-Agenten
 
-Projektübergreifende Arbeits- und Qualitätsstandards für den Cursor-Agenten liegen **zentral** unter **`~/.cursor/rules/entwicklungsstandards.mdc`** (nicht im Repository). Dort ist `alwaysApply: true` gesetzt, damit die Regeln grundsätzlich gelten. Lokales `.cursor/` im Repo wird per `.gitignore` ausgeschlossen.
+Projektübergreifende Arbeits- und Qualitätsstandards für den Cursor-Agenten liegen **zentral** unter **`~/.cursor/rules/entwicklungsstandards.mdc`** (nicht im Repository); dort ist `alwaysApply: true` gesetzt. Ergänzend zentral: **`~/.cursor/rules/macos-apple-icons.mdc`** (Kopie wie im Repo, gleicher Inhalt).
+
+Im **Repository** liegt **`.cursor/rules/macos-apple-icons.mdc`** (Icons & HIG); übriges `.cursor/*` bleibt per `.gitignore` lokal und wird nicht committed.
 
 ## Sicherheit (Kurz)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Erzeugt AppIcon.icns aus enventa-mark-cropped.svg (weißer Rand, Finder-Bundle-Icon).
+# Erzeugt AppIcon.icns aus enventa-mark-cropped.svg (weißer Rand, abgerundete transparente Außenkanten für Finder/DMG-Volumen, siehe normalize_iconset_png.swift).
 # Voraussetzung: rsvg-convert (z. B. brew install librsvg), swift (Xcode Command Line Tools).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

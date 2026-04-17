@@ -1,0 +1,11 @@
+---
+description: Icons, App- und DMG-Grafik an Apple-HIG und Systemvorgaben ausrichten
+alwaysApply: true
+---
+
+# Icons & visuelle Assets (macOS)
+
+- **App-Icons (`.icns`)**, **DMG-Volumen-Icons** (`--volicon`), **Menü-/Tray-Symbole** und **eingebettete Markenbilder** sollen der **Apple Human Interface Guidelines** und der **üblichen macOS-Darstellung** entsprechen (u. a. [HIG – Icons](https://developer.apple.com/design/human-interface-guidelines/icons), [Design – Icons](https://developer.apple.com/design/human-interface-guidelines/app-icons)).
+- **Keine kantigen Vollflächen-Icons** auf dem Schreibtisch oder in Finder-Fenstern: Grafiken mit **transparenten Außenbereichen** bzw. **abgerundeter Silhouette** (System rundet/komponiert konsistent).
+- **Pipeline im Projekt:** `Scripts/build_app_icon.sh` → `normalize_iconset_png.swift` erzeugt PNGs mit **abgerundeter Maske** (~22,3 % Eckenradius) für `iconutil` / DMG-`volicon`.
+- Bei neuen Skripten oder Assets: **Kontrast**, **Lesbarkeit in kleinen Größen** und **Retina**-Dichten (`@2x`) beachten; keine Hartkodierung willkürlicher Pixel außerhalb dokumentierter Layout-Konstanten (z. B. `dmg_layout_constants.sh`).

@@ -1,5 +1,9 @@
 .DS_Store
-.cursor/
+# Cursor: nur versionierte Projektregeln; lokale Experimente unter .cursor/ ignorieren
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/macos-apple-icons.mdc
 .build/
 dist/
 .swiftpm/

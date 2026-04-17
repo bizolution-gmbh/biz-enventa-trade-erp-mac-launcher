@@ -36,9 +36,27 @@ guard let ctx = CGContext(
     bitmapInfo: bitmapInfo
 ) else { exit(1) }
 
-// Weißer Hintergrund (inkl. ehemaliger Transparenz-Ränder)
+ctx.interpolationQuality = .high
+
+// Außenbereich transparent, damit Finder/Dock/DMG-Volumen **abgerundet** darstellen (wie macOS-App-Icons).
+ctx.clear(CGRect(x: 0, y: 0, width: w, height: h))
+
+// Abgerundetes Rechteck ≈ Apple-App-Icon-Radius (ca. 22,37 % der kurzen Seite — gängige Näherung zur „Squircle“-Optik).
+let side = CGFloat(min(w, h))
+let corner = max(1, side * 0.223)
+let clipRect = CGRect(x: 0, y: 0, width: w, height: h)
+let rounded = CGPath(
+    roundedRect: clipRect,
+    cornerWidth: corner,
+    cornerHeight: corner,
+    transform: nil
+)
+ctx.addPath(rounded)
+ctx.clip()
+
+// Weißer Hintergrund nur innerhalb der Maske (Mark sitzt wie bisher zentriert im rsvg-Canvas).
 ctx.setFillColor(red: 1, green: 1, blue: 1, alpha: 1)
-ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+ctx.fill(clipRect)
 
 // Keine vertikale Spiegelung: Offscreen-Bitmap und PNG-Ausgabe sind hier top-aligned.
 ctx.draw(cgIn, in: CGRect(x: 0, y: 0, width: w, height: h))
