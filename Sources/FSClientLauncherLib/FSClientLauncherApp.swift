@@ -2,9 +2,9 @@ import AppKit
 import Darwin
 import SwiftUI
 
-@main
-struct FSClientLauncherEntry {
-    static func main() {
+/// Einstiegspunkt für das ausführbare Ziel; wird von `Sources/FSClientLauncher/Main.swift` aufgerufen.
+public enum FSClientLauncherEntry {
+    public static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
@@ -21,8 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var configWindow: NSWindow?
     /// Verhindert, dass die Konfiguration öffnet, bevor z. B. `application(_:openFile:)` nach einem Doppelklick auf `.fsclient` gelaufen ist.
     private var didStartLaunchFlow = false
-    /// Verhindert parallele Doppelstarts desselben Pfads (Finder: `argv` + `openFile`/`openURLs`).
-    private var inFlightLaunchKeys: Set<String> = []
+    private lazy var inboundLaunch = InboundLaunchCoordinator(host: self)
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         Self.shared = self
@@ -96,13 +95,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         didStartLaunchFlow = true
         for url in urls {
-            Task { await self.runLaunchArgument(url) }
+            Task { await self.inboundLaunch.runLaunchArgument(url) }
         }
     }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {
         didStartLaunchFlow = true
-        Task { await runLaunchArgument(filename) }
+        Task { await inboundLaunch.runLaunchArgument(filename) }
         return true
     }
 
@@ -130,12 +129,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     guard let self else { return }
                     if !self.didStartLaunchFlow {
                         self.didStartLaunchFlow = true
-                        Task { await self.runLaunchArgument(first) }
+                        Task { await self.inboundLaunch.runLaunchArgument(first) }
                     }
                 }
             } else {
                 didStartLaunchFlow = true
-                Task { await runLaunchArgument(first) }
+                Task { await inboundLaunch.runLaunchArgument(first) }
             }
         } else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
@@ -160,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         didStartLaunchFlow = true
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         let persistShortcut = !trimmed.lowercased().hasPrefix("fsclientlauncher:")
-        Task { await runLaunchArgument(path, persistShortcutAfterLaunch: persistShortcut) }
+        Task { await inboundLaunch.runLaunchArgument(path, persistShortcutAfterLaunch: persistShortcut) }
     }
 
     private func showConfigWindow() {
@@ -262,57 +261,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     /// Nach Fehler/Abbruch: Tray sichtbar halten, kein automatisches Beenden (Nutzer: „… beenden“).
-    private func ensureTrayAfterLaunchFailure() {
+    func ensureTrayAfterLaunchFailure() {
         MenuBarExtraController.shared.installIfNeeded()
     }
 
-    /// Öffnen über `application(_:open urls:)` — **http(s)-URLs** bleiben als `URL`-Objekt (kein Roundtrip `absoluteString` → erneutes Parsen).
-    private func runLaunchArgument(_ url: URL, persistShortcutAfterLaunch: Bool = true) async {
-        let dedupeKey = url.absoluteString.lowercased()
-        if inFlightLaunchKeys.contains(dedupeKey) {
-            LaunchLoadTrace.log("runLaunchArgument(URL): Dedupe — Start übersprungen, key=\(LaunchLoadTrace.preview(dedupeKey, max: 220))")
-            return
-        }
-        inFlightLaunchKeys.insert(dedupeKey)
-        defer { inFlightLaunchKeys.remove(dedupeKey) }
-        do {
-            let parsed = try await LaunchConfiguration.load(systemOpenURL: url, persistShortcutAfterLaunch: persistShortcutAfterLaunch)
-            try await runLaunchCoordinator(parsed: parsed)
-        } catch is CancellationError {
-            await MainActor.run { ensureTrayAfterLaunchFailure() }
-        } catch {
-            LaunchLoadTrace.log("runLaunchArgument(URL): Fehler \(String(describing: type(of: error))) — \(error.localizedDescription)")
-            await MainActor.run {
-                presentLaunchError(error)
-            }
-        }
-    }
-
-    private func runLaunchArgument(_ raw: String, persistShortcutAfterLaunch: Bool = true) async {
-        let dedupeKey = FsClientShortcutsStore.normalizeShortcutTarget(raw).lowercased()
-        if inFlightLaunchKeys.contains(dedupeKey) {
-            LaunchLoadTrace.log("runLaunchArgument(String): Dedupe — Start übersprungen, key=\(LaunchLoadTrace.preview(dedupeKey, max: 220))")
-            return
-        }
-        inFlightLaunchKeys.insert(dedupeKey)
-        defer { inFlightLaunchKeys.remove(dedupeKey) }
-        do {
-            let parsed = try await LaunchConfiguration.load(
-                firstArgument: raw,
-                persistShortcutAfterLaunch: persistShortcutAfterLaunch
-            )
-            try await runLaunchCoordinator(parsed: parsed)
-        } catch is CancellationError {
-            await MainActor.run { ensureTrayAfterLaunchFailure() }
-        } catch {
-            LaunchLoadTrace.log("runLaunchArgument(String): Fehler \(String(describing: type(of: error))) — \(error.localizedDescription)")
-            await MainActor.run {
-                presentLaunchError(error)
-            }
-        }
-    }
-
-    private func runLaunchCoordinator(parsed: ParsedFsClientLaunch) async throws {
+    func runLaunchCoordinator(parsed: ParsedFsClientLaunch) async throws {
         let settings = LauncherSettings.load()
         if settings.DisplayConsole {
             await MainActor.run {
@@ -349,7 +302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    private func presentLaunchError(_ error: Error) {
+    func presentLaunchError(_ error: Error) {
         let settings = LauncherSettings.load()
         if settings.DisplayConsole {
             JavaProcessOutputWindow.shared.present()

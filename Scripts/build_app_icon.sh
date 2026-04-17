@@ -4,11 +4,11 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Mark mit weißem Rand: rsvg platziert skaliertes Mark auf größerer Seite (-b none), Swift normalisiert zu RGBA für iconutil.
-MARK_SVG="${ROOT}/Sources/FSClientLauncher/Resources/enventa-mark-cropped.svg"
+MARK_SVG="${ROOT}/Sources/FSClientLauncherLib/Resources/enventa-mark-cropped.svg"
 NORM_SWIFT="${ROOT}/Scripts/normalize_iconset_png.swift"
 PACK_SWIFT="${ROOT}/Scripts/pack_iconset_to_icns.swift"
-ICONSET="${ROOT}/Sources/FSClientLauncher/Resources/AppIcon.iconset"
-ICNS="${ROOT}/Sources/FSClientLauncher/Resources/AppIcon.icns"
+ICONSET="${ROOT}/Sources/FSClientLauncherLib/Resources/AppIcon.iconset"
+ICNS="${ROOT}/Sources/FSClientLauncherLib/Resources/AppIcon.icns"
 
 if ! command -v rsvg-convert >/dev/null 2>&1; then
   echo "rsvg-convert nicht gefunden — AppIcon.icns wird nicht neu erzeugt." >&2

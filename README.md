@@ -13,8 +13,8 @@ Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Clie
 - JAR-Cache unter **`~/Library/Caches/enventa Group/FS Client Launcher/.jarcache/`** (Trennung Roaming vs. Local wie unter Windows).
 - Logdateien unter **`~/Library/Application Support/enventa Group/FS Client Launcher/Logfiles/`** (wie `Logfiles` unter Windows).
 - **Cache-Bereinigung** wie `CacheService.CleanupCache` inkl. Logdatei-Bereinigung; in der Konfiguration steuerbar und nach dem Java-Lauf parallel ausgeführt.
-- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/FSClientLauncher/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
-- **Java-Dock & Kacheln:** `Sources/FSClientLauncher/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
+- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/FSClientLauncherLib/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
+- **Java-Dock & Kacheln:** `Sources/FSClientLauncherLib/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
 
 ## JDK / JRE mitliefern
 
@@ -54,8 +54,9 @@ Hilfsskript (lädt Temurin 11/21 von Adoptium; Lizenz beachten):
 
 ```bash
 swift build -c release
+swift test
 # oder bei Problemen mit SwiftPM:
-swiftc -O Sources/FSClientLauncher/*.swift -o FSClientLauncher \
+swiftc -O Sources/FSClientLauncherLib/*.swift -o FSClientLauncher \
   -sdk "$(xcrun --sdk macosx --show-sdk-path)" -target arm64-apple-macosx13.0
 ```
 

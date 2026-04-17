@@ -10,12 +10,23 @@ let package = Package(
         .executable(name: "FSClientLauncher", targets: ["FSClientLauncher"]),
     ],
     targets: [
-        .executableTarget(
-            name: "FSClientLauncher",
-            path: "Sources/FSClientLauncher",
+        .target(
+            name: "FSClientLauncherLib",
+            path: "Sources/FSClientLauncherLib",
             resources: [
                 .copy("Resources/Icon.png"),
             ]
+        ),
+        .executableTarget(
+            name: "FSClientLauncher",
+            dependencies: ["FSClientLauncherLib"],
+            path: "Sources/FSClientLauncher",
+            sources: ["Main.swift"]
+        ),
+        .testTarget(
+            name: "FSClientLauncherTests",
+            dependencies: ["FSClientLauncherLib"],
+            path: "Tests/FSClientLauncherTests"
         ),
     ]
 )

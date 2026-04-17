@@ -49,9 +49,13 @@ enum VersionPolicy {
     }
 
     static func evaluateLauncherMinVersion(_ minVersionString: String?) -> VersionGate {
+        evaluateLauncherMinVersion(minVersionString, installed: installedLauncherSemantic())
+    }
+
+    /// Für Unit-Tests: installierte Version explizit setzen (Produktion nutzt `installedLauncherSemantic()`).
+    static func evaluateLauncherMinVersion(_ minVersionString: String?, installed installedFile: Semantic) -> VersionGate {
         guard let raw = minVersionString?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
             let required = Semantic.parse(raw) else { return .ok }
-        let installedFile = installedLauncherSemantic()
         let installedMM = Semantic(major: installedFile.major, minor: installedFile.minor, build: -1, revision: -1)
         let requiredMM = Semantic(major: required.major, minor: required.minor, build: -1, revision: -1)
         if installedMM < requiredMM {

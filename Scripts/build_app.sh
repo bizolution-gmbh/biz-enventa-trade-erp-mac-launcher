@@ -13,7 +13,7 @@ if (cd "$ROOT" && swift build -c release 2>/dev/null); then
   cp "${ROOT}/.build/release/FSClientLauncher" "${ROOT}/dist/FSClientLauncher"
 else
   echo "(swift build nicht möglich — Fallback: swiftc)"
-  swiftc -O "${ROOT}/Sources/FSClientLauncher/"*.swift -o "${ROOT}/dist/FSClientLauncher" -sdk "$SDK" -target "$TARGET"
+  swiftc -O "${ROOT}/Sources/FSClientLauncherLib/"*.swift -o "${ROOT}/dist/FSClientLauncher" -sdk "$SDK" -target "$TARGET"
 fi
 
 echo "==> App-Bundle: ${DEST}"
@@ -25,10 +25,10 @@ cp "${ROOT}/Scripts/Info.plist" "${DEST}/Contents/Info.plist"
 printf 'APPL????' > "${DEST}/Contents/PkgInfo"
 cp "${ROOT}/dist/FSClientLauncher" "$BIN"
 chmod +x "$BIN"
-if compgen -G "${ROOT}/Sources/FSClientLauncher/Resources/*.svg" > /dev/null; then
-  cp "${ROOT}/Sources/FSClientLauncher/Resources/"*.svg "${DEST}/Contents/Resources/" 2>/dev/null || true
+if compgen -G "${ROOT}/Sources/FSClientLauncherLib/Resources/*.svg" > /dev/null; then
+  cp "${ROOT}/Sources/FSClientLauncherLib/Resources/"*.svg "${DEST}/Contents/Resources/" 2>/dev/null || true
 fi
-RES_ICNS="${ROOT}/Sources/FSClientLauncher/Resources/AppIcon.icns"
+RES_ICNS="${ROOT}/Sources/FSClientLauncherLib/Resources/AppIcon.icns"
 echo "==> App-Icon (AppIcon.icns)"
 # Neu erzeugen nur mit rsvg; scheitert iconutil, bleibt die bestehende .icns durch atomares Schreiben im Skript erhalten.
 if command -v rsvg-convert >/dev/null 2>&1; then
@@ -41,7 +41,7 @@ else
   echo "Hinweis: Kein AppIcon.icns — für Finder-Icon: brew install librsvg && ./Scripts/build_app_icon.sh" >&2
 fi
 
-FS_ICON="${ROOT}/Sources/FSClientLauncher/Resources/Icon.png"
+FS_ICON="${ROOT}/Sources/FSClientLauncherLib/Resources/Icon.png"
 if [[ -f "$FS_ICON" ]]; then
   cp "$FS_ICON" "${DEST}/Contents/Resources/Icon.png"
 else

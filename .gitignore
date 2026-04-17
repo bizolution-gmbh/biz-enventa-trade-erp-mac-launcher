@@ -9,5 +9,5 @@
 dist/
 .swiftpm/
 BundledJDKs/
-Sources/FSClientLauncher/Resources/AppIcon.iconset/
+Sources/FSClientLauncherLib/Resources/AppIcon.iconset/
 ref.iconset/
