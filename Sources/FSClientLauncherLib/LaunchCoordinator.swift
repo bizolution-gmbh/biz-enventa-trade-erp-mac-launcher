@@ -78,6 +78,9 @@ private final class DetachedJavaProcessRegistry: @unchecked Sendable {
 
 /// Orchestrierung: Broker laden, JARs cachen, Java starten — Port von `LaunchService`.
 enum LaunchCoordinator {
+    /// Kurz warten nach `Process.run`, bis `isRunning` zuverlässig gesetzt ist (sonst fälschlicher sofortiger Fehlerpfad).
+    private static let javaProcessPostRunHandshakeWait: TimeInterval = 0.28
+
     static func filterOsArchitecture(jarFiles: [ApiJarFile], jvmArch: String?) -> [ApiJarFile] {
         let osFiltered = jarFiles.filter { jar in
             guard let os = jar.Os?.trimmingCharacters(in: .whitespacesAndNewlines), !os.isEmpty else {
@@ -357,7 +360,7 @@ enum LaunchCoordinator {
         p.standardError = logHandle
 
         try p.run()
-        Thread.sleep(forTimeInterval: 0.28)
+        Thread.sleep(forTimeInterval: javaProcessPostRunHandshakeWait)
         if !p.isRunning {
             let code = p.terminationStatus
             try? logHandle.close()

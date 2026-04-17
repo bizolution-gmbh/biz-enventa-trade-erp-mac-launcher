@@ -17,6 +17,14 @@ public enum FSClientLauncherEntry {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    /// Verzögerungen rund um Finder/Startargumente (argv vs. `openFile`/`openURLs`).
+    private enum LaunchTiming {
+        /// `.fsclient` kommt oft parallel in `argv` und über `openFile` — kurz warten, damit nicht doppelt gestartet wird.
+        static let argvFsclientFallbackDelay: TimeInterval = 0.35
+        /// Ohne argv: Einstellungsfenster erst nach kurzer Pause, falls noch ein Datei-/URL-Start folgt.
+        static let openConfigIfNoLaunchAfter: TimeInterval = 0.15
+    }
+
     static weak var shared: AppDelegate?
 
     private var configWindow: NSWindow?
@@ -126,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // Doppelstart: macOS übergibt .fsclient oft in argv UND über openFile/openURLs.
             // Zwei parallele LaunchCoordinator-Läufe können fehlschlagen und NSApp.terminate auslösen.
             if first.lowercased().hasSuffix(".fsclient") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + LaunchTiming.argvFsclientFallbackDelay) { [weak self] in
                     guard let self else { return }
                     if !self.didStartLaunchFlow {
                         self.didStartLaunchFlow = true
@@ -138,7 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 Task { await inboundLaunch.runLaunchArgument(first) }
             }
         } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + LaunchTiming.openConfigIfNoLaunchAfter) { [weak self] in
                 guard let self else { return }
                 if !self.didStartLaunchFlow {
                     self.showConfigWindow()

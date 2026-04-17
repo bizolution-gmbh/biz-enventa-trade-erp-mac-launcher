@@ -1,6 +1,8 @@
 import Foundation
 
 enum LaunchConfiguration {
+    // MARK: - Brücken-URLs (öffentliche Hilfen)
+
     /// Brücken-URL, damit ein **Lesezeichen / Verknüpfung** die echte **http(s)**-Definitions-URL an den Launcher übergibt (Browser startet keine fremden http-Links in Apps).
     /// Form: `fsclientlauncher:jnlp?url=` + **eine** URL-Kodierung der Ziel-URL (`https%3A%2F%2F…%2Fapi%2Fjnlp%3F…`).
     static func embeddedHttpURLFromFsClientLauncherJnlpBridge(_ raw: String) -> String? {

@@ -41,9 +41,10 @@ ctx.interpolationQuality = .high
 // Außenbereich transparent, damit Finder/Dock/DMG-Volumen **abgerundet** darstellen (wie macOS-App-Icons).
 ctx.clear(CGRect(x: 0, y: 0, width: w, height: h))
 
-// Abgerundetes Rechteck ≈ Apple-App-Icon-Radius (ca. 22,37 % der kurzen Seite — gängige Näherung zur „Squircle“-Optik).
+// Abgerundetes Rechteck ≈ Apple-App-Icon-Radius — gleiche Fraktion wie `LauncherBrandingImages.macOSIconSquircleCornerFraction` (Dock/Kacheln).
 let side = CGFloat(min(w, h))
-let corner = max(1, side * 0.223)
+let macOSIconSquircleCornerFraction: CGFloat = 0.2237
+let corner = max(1, side * macOSIconSquircleCornerFraction)
 let clipRect = CGRect(x: 0, y: 0, width: w, height: h)
 let rounded = CGPath(
     roundedRect: clipRect,

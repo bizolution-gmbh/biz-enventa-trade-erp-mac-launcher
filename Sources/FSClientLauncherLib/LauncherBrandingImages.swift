@@ -10,6 +10,8 @@ import AppKit
 enum LauncherBrandingImages {
     /// Keyline / „lebender Bereich“: Inhalt etwas kleiner als die volle 1024-Kachel (vgl. Apple-Icon-Vorlagen).
     private static let dockContentInsetFraction: CGFloat = 0.10
+    /// Näherung Squircle-Eckenradius (Anteil der Referenzkante) — mit `Scripts/normalize_iconset_png.swift` und Regel `macos-apple-icons` abstimmen.
+    private static let macOSIconSquircleCornerFraction: CGFloat = 0.2237
 
     /// Mindestgröße (logische Punkte), damit defekte Mini-PNGs ignoriert werden.
     private static let minimumFsClientIconDimension: CGFloat = 16
@@ -105,7 +107,7 @@ enum LauncherBrandingImages {
         let inset = dim * dockContentInsetFraction
         let bounds = NSRect(x: 0, y: 0, width: dim, height: dim)
         let inner = bounds.insetBy(dx: inset, dy: inset)
-        let corner = dim * 0.2237
+        let corner = dim * macOSIconSquircleCornerFraction
         return NSImage(size: bounds.size, flipped: false) { dst in
             NSColor.clear.set()
             dst.fill()
