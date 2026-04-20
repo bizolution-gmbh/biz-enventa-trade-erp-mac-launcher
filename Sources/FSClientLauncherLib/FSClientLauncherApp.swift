@@ -441,7 +441,7 @@ private struct ConfigRootView: View {
                         .font(.title2)
                         .accessibilityHidden(true)
                     Text(
-                        "Dieser Launcher ist kein offizielles Produkt der enventa group. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
+                        "Dieser Launcher ist kein offizielles Produkt der enventa group GmbH. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
                     )
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
@@ -454,7 +454,7 @@ private struct ConfigRootView: View {
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(
-                    "Hinweis: Dieser Launcher ist kein offizielles Produkt der enventa group. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
+                    "Hinweis: Dieser Launcher ist kein offizielles Produkt der enventa group GmbH. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
                 )
             }
             .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
