@@ -5,7 +5,7 @@ enum LaunchConfiguration {
 
     /// Brücken-URL, damit ein **Lesezeichen / Verknüpfung** die echte **http(s)**-Definitions-URL an den Launcher übergibt (Browser startet keine fremden http-Links in Apps).
     /// Form: `fsclientlauncher:jnlp?url=` + **eine** URL-Kodierung der Ziel-URL (`https%3A%2F%2F…%2Fapi%2Fjnlp%3F…`).
-    static func embeddedHttpURLFromFsClientLauncherJnlpBridge(_ raw: String) -> String? {
+    static func embeddedHttpURLFromLauncherJnlpBridge(_ raw: String) -> String? {
         let t = sanitizeHttpURLUserInput(raw)
         guard t.lowercased().hasPrefix("fsclientlauncher:") else { return nil }
         var rest = String(t.dropFirst("fsclientlauncher:".count))
@@ -31,22 +31,22 @@ enum LaunchConfiguration {
     }
 
     /// Prüft, ob `fsclientlauncher:launch?…` mit den gleichen Regeln wie beim Start geparst werden kann.
-    static func isParsableFsClientLauncherLaunchURI(_ raw: String) -> Bool {
+    static func isParsableLauncherLaunchURI(_ raw: String) -> Bool {
         let t0 = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let r = t0.range(of: "fsclientlauncher:", options: .caseInsensitive) else { return false }
         let t = "fsclientlauncher:" + String(t0[r.upperBound...])
-        return (try? parseFsClientLauncherURI(t)) != nil
+        return (try? parseLauncherLaunchURI(t)) != nil
     }
 
     /// `http(s)://…/…/api/jnlp?…` oder `…/api/fsclient?…` — Web liefert auf dem Mac oft keine `.fsclient`-Datei; der Server antwortet stattdessen mit **302 → fsclientlauncher:launch?…**.
     static func shouldOfferLauncherBridge(forHttpShortcut raw: String) -> Bool {
         let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.lowercased().hasPrefix("fsclientlauncher:") else { return false }
-        return fsClientLauncherLaunchURLFromWebDefinitionHTTP(t) != nil
+        return launcherLaunchURLFromWebDefinitionHTTP(t) != nil
     }
 
     /// Baut `fsclientlauncher:launch?title=…&broker=…&theme=…&language=…&lookAndFeel=…` wie bei einer typischen Server-Weiterleitung (`lang`→`language`, `themeid`→`theme`, `metal`→`lookAndFeel`).
-    static func fsClientLauncherLaunchURLFromWebDefinitionHTTP(_ raw: String) -> String? {
+    static func launcherLaunchURLFromWebDefinitionHTTP(_ raw: String) -> String? {
         let cleaned = stripLeadingGarbageBeforeHTTPScheme(raw.trimmingCharacters(in: .whitespacesAndNewlines))
         let low = cleaned.lowercased()
         guard low.hasPrefix("http://") || low.hasPrefix("https://") else { return nil }
@@ -81,43 +81,43 @@ enum LaunchConfiguration {
             s.addingPercentEncoding(withAllowedCharacters: formValueAllowed) ?? s
         }
         var pairs: [String] = [
-            "\(ApiFsClientKeys.title)=\(enc(slug))",
-            "\(ApiFsClientKeys.broker)=\(enc(brokerURL))",
-            "\(ApiFsClientKeys.theme)=\(enc(theme))",
-            "\(ApiFsClientKeys.language)=\(enc(language))",
-            "\(ApiFsClientKeys.lookAndFeel)=\(enc(lookAndFeel))",
+            "\(LaunchParameterKey.title)=\(enc(slug))",
+            "\(LaunchParameterKey.broker)=\(enc(brokerURL))",
+            "\(LaunchParameterKey.theme)=\(enc(theme))",
+            "\(LaunchParameterKey.language)=\(enc(language))",
+            "\(LaunchParameterKey.lookAndFeel)=\(enc(lookAndFeel))",
         ]
         if let nd = noDomain?.trimmingCharacters(in: .whitespacesAndNewlines), !nd.isEmpty {
-            pairs.append("\(ApiFsClientKeys.noDomainAuth)=\(enc(nd))")
+            pairs.append("\(LaunchParameterKey.noDomainAuth)=\(enc(nd))")
         }
         return "fsclientlauncher:launch?" + pairs.joined(separator: "&")
     }
 
     /// Lädt **.fsclient**-JSON von einer geparsten **http(s)**-URL, legt sie temporär ab und dekodiert wie eine lokale Datei.
     /// Der Server kann mit **302** auf `fsclientlauncher:launch?…` weiterleiten — das wird wie ein direkter Launcher-Aufruf verarbeitet.
-    private static func loadFromRemoteFsClientDownloadURL(
+    private static func loadFromRemoteDefinitionDownloadURL(
         remote: URL,
         displayArgument: String,
         persistShortcutAfterLaunch: Bool
-    ) async throws -> ParsedFsClientLaunch {
-        LaunchLoadTrace.log("loadFromRemoteFsClientDownloadURL: GET \(LaunchLoadTrace.preview(remote.absoluteString))")
-        switch try await downloadFsClientDefinition(from: remote) {
-        case .redirectToFsClientLauncher(let location):
+    ) async throws -> ParsedLaunchInput {
+        LaunchLoadTrace.log("loadFromRemoteDefinitionDownloadURL: GET \(LaunchLoadTrace.preview(remote.absoluteString))")
+        switch try await downloadLauncherDefinition(from: remote) {
+        case .redirectToLauncherScheme(let location):
             LaunchLoadTrace.log(
-                "loadFromRemoteFsClientDownloadURL: HTTP-Redirect → fsclientlauncher (intern): \(LaunchLoadTrace.preview(location))"
+                "loadFromRemoteDefinitionDownloadURL: HTTP-Redirect → fsclientlauncher (intern): \(LaunchLoadTrace.preview(location))"
             )
-            return try await loadFromFsClientLauncherString(
+            return try await loadFromLauncherURIString(
                 location,
                 originalArgument: displayArgument,
                 persistShortcutAfterLaunch: persistShortcutAfterLaunch
             )
         case .jsonData(let data):
-            let tempURL = try writeFsClientJsonToTemporaryFile(data)
+            let tempURL = try writeLauncherDefinitionJsonToTemporaryFile(data)
             let fromFile = try Data(contentsOf: tempURL)
-            let client = try decodeFsClient(from: fromFile)
+            let parameters = try decodeLaunchParameters(from: fromFile)
             let path = (tempURL.path as NSString).standardizingPath
-            return ParsedFsClientLaunch(
-                client: client,
+            return ParsedLaunchInput(
+                parameters: parameters,
                 jsonData: data,
                 openedFromDirectLocalFile: true,
                 localFilePath: path,
@@ -130,7 +130,7 @@ enum LaunchConfiguration {
     // MARK: - Eingabeauflösung (ein Pfad für alle Quellen)
 
     /// Erkennt **remote .fsclient-Definition** anhand der kanonischen `URL` (ohne erneutes Parsen des Strings).
-    private static func urlLooksLikeRemoteFsClientDefinition(_ u: URL) -> Bool {
+    private static func urlLooksLikeRemoteClientDefinition(_ u: URL) -> Bool {
         let pathDec = (u.path.removingPercentEncoding ?? u.path).lowercased()
         let abs = u.absoluteString.lowercased()
         if pathDec.contains("/api/fsclient") || abs.contains("/api/fsclient") { return true }
@@ -160,17 +160,17 @@ enum LaunchConfiguration {
         url: URL,
         displayArgument: String,
         persistShortcutAfterLaunch: Bool
-    ) async throws -> ParsedFsClientLaunch {
+    ) async throws -> ParsedLaunchInput {
         let host = url.host ?? "(nil)"
         let sch = url.scheme ?? "(nil)"
         let fsTarget: URL
         if urlLooksLikeRemoteJnlpPage(url) {
-            fsTarget = rewriteRemoteJnlpDefinitionURLToFsClientAPI(url)
+            fsTarget = rewriteRemoteJnlpDefinitionURLToClientAPI(url)
             LaunchLoadTrace.log(
                 "loadHTTPURLConnection: jnlp-Pfad → fsclient-URL \(LaunchLoadTrace.preview(fsTarget.absoluteString))"
             )
         } else if let jnlpLike = jnlpRemoteAPIURL(from: displayArgument) ?? jnlpRemoteAPIURL(from: url.absoluteString) {
-            fsTarget = rewriteRemoteJnlpDefinitionURLToFsClientAPI(jnlpLike)
+            fsTarget = rewriteRemoteJnlpDefinitionURLToClientAPI(jnlpLike)
             LaunchLoadTrace.log(
                 "loadHTTPURLConnection: jnlpRemoteAPIURL-Fallback → fsclient-URL \(LaunchLoadTrace.preview(fsTarget.absoluteString))"
             )
@@ -178,14 +178,14 @@ enum LaunchConfiguration {
             fsTarget = url
         }
         LaunchLoadTrace.log(
-            "loadHTTPURLConnection: scheme=\(sch) host=\(host) path=\(url.path) looksFsClient=\(urlLooksLikeRemoteFsClientDefinition(fsTarget)) display=\(LaunchLoadTrace.preview(displayArgument))"
+            "loadHTTPURLConnection: scheme=\(sch) host=\(host) path=\(url.path) looksRemoteDefinition=\(urlLooksLikeRemoteClientDefinition(fsTarget)) display=\(LaunchLoadTrace.preview(displayArgument))"
         )
         guard let schL = url.scheme?.lowercased(), schL == "http" || schL == "https", url.host != nil else {
             LaunchLoadTrace.log("loadHTTPURLConnection: invalidURI — kein http(s) oder kein Host (scheme=\(sch) host=\(host))")
             throw LaunchError.invalidURI(displayArgument)
         }
-        if urlLooksLikeRemoteFsClientDefinition(fsTarget) {
-            return try await loadFromRemoteFsClientDownloadURL(
+        if urlLooksLikeRemoteClientDefinition(fsTarget) {
+            return try await loadFromRemoteDefinitionDownloadURL(
                 remote: fsTarget,
                 displayArgument: displayArgument,
                 persistShortcutAfterLaunch: persistShortcutAfterLaunch
@@ -197,7 +197,7 @@ enum LaunchConfiguration {
         throw LaunchError.invalidURI(displayArgument)
     }
 
-    private static func loadLocalFileLaunch(trimmedArgument: String, persistShortcutAfterLaunch: Bool) async throws -> ParsedFsClientLaunch {
+    private static func loadLocalFileLaunch(trimmedArgument: String, persistShortcutAfterLaunch: Bool) async throws -> ParsedLaunchInput {
         LaunchLoadTrace.log("loadLocalFileLaunch: \(LaunchLoadTrace.preview(trimmedArgument))")
         let lower = trimmedArgument.lowercased()
         if lower.hasSuffix(".jnlp") {
@@ -207,10 +207,10 @@ enum LaunchConfiguration {
         let fileURL = resolveLocalFileURL(from: trimmedArgument)
         LaunchLoadTrace.log("loadLocalFileLaunch: lese .fsclient/JSON von \(LaunchLoadTrace.preview(fileURL.path))")
         let data = try Data(contentsOf: fileURL)
-        let client = try decodeFsClient(from: data)
+        let parameters = try decodeLaunchParameters(from: data)
         let path = (fileURL.path as NSString).standardizingPath
-        return ParsedFsClientLaunch(
-            client: client,
+        return ParsedLaunchInput(
+            parameters: parameters,
             jsonData: data,
             openedFromDirectLocalFile: true,
             localFilePath: path,
@@ -220,7 +220,7 @@ enum LaunchConfiguration {
     }
 
     /// Von `application(_:open urls:)` — nutzt dieselbe HTTP-Logik wie Zeichenketten-Starts, aber **ohne** `absoluteString` → erneutes Parsen für http(s).
-    static func load(systemOpenURL url: URL, persistShortcutAfterLaunch: Bool = true) async throws -> ParsedFsClientLaunch {
+    static func load(systemOpenURL url: URL, persistShortcutAfterLaunch: Bool = true) async throws -> ParsedLaunchInput {
         LaunchLoadTrace.log("load(systemOpenURL): \(LaunchLoadTrace.preview(url.absoluteString)) isFileURL=\(url.isFileURL)")
         if url.isFileURL {
             return try await loadLocalFileLaunch(trimmedArgument: url.path, persistShortcutAfterLaunch: persistShortcutAfterLaunch)
@@ -240,16 +240,16 @@ enum LaunchConfiguration {
     }
 
     /// Erster CLI-Parameter: `fsclientlauncher:launch?…`, **http(s)-URL** zu einer `.fsclient`-API, oder Pfad zu JSON (wie Windows `LaunchService.Init`).
-    static func load(firstArgument: String, persistShortcutAfterLaunch: Bool = true) async throws -> ParsedFsClientLaunch {
+    static func load(firstArgument: String, persistShortcutAfterLaunch: Bool = true) async throws -> ParsedLaunchInput {
         LaunchLoadTrace.log("load(firstArgument): Länge=\(firstArgument.count) Vorschau=\(LaunchLoadTrace.preview(firstArgument))")
         let wsOnly = firstArgument.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmed = stripLeadingGarbageBeforeHTTPScheme(wsOnly)
-        if let inner = embeddedHttpURLFromFsClientLauncherJnlpBridge(trimmed) {
+        if let inner = embeddedHttpURLFromLauncherJnlpBridge(trimmed) {
             return try await load(firstArgument: inner, persistShortcutAfterLaunch: persistShortcutAfterLaunch)
         }
         let tl = trimmed.lowercased()
         if tl.hasPrefix("fsclientlauncher:") {
-            return try await loadFromFsClientLauncherString(
+            return try await loadFromLauncherURIString(
                 trimmed,
                 originalArgument: trimmed,
                 persistShortcutAfterLaunch: persistShortcutAfterLaunch
@@ -284,17 +284,17 @@ enum LaunchConfiguration {
 
     // MARK: - fsclientlauncher:
 
-    private static func parseFsClientLauncherURI(_ firstArgument: String) throws -> ApiFsClient {
+    private static func parseLauncherLaunchURI(_ firstArgument: String) throws -> LaunchParameters {
         var withoutScheme = firstArgument.dropFirst("fsclientlauncher:".count)
         if withoutScheme.hasPrefix("//") {
             withoutScheme = withoutScheme.dropFirst(2)
         }
         guard let qIndex = withoutScheme.firstIndex(of: "?") else {
-            throw LaunchError.invalidFsClientLauncherURI
+            throw LaunchError.invalidLauncherLaunchURI
         }
         let pathPart = withoutScheme[..<qIndex]
         guard pathPart.lowercased() == "launch" else {
-            throw LaunchError.invalidFsClientLauncherURI
+            throw LaunchError.invalidLauncherLaunchURI
         }
         let query = String(withoutScheme[withoutScheme.index(after: qIndex)...])
         let items = URLComponents(string: "dummy://h?" + query)?.queryItems ?? []
@@ -302,18 +302,18 @@ enum LaunchConfiguration {
         for item in items {
             dict[item.name] = item.value ?? ""
         }
-        return try ApiFsClient(args: dict)
+        return try LaunchParameters(args: dict)
     }
 
-    private static func jsonDataForPersistence(from client: ApiFsClient) throws -> Data {
-        let obj = client.args as [String: Any]
+    private static func jsonDataForPersistence(from parameters: LaunchParameters) throws -> Data {
+        let obj = parameters.args as [String: Any]
         return try JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])
     }
 
     // MARK: - Remote (http/https)
 
     /// Schreibt heruntergeladene **.fsclient**-JSON in eine temporäre Datei (wie Doppelklick auf eine lokale Definition).
-    private static func writeFsClientJsonToTemporaryFile(_ data: Data) throws -> URL {
+    private static func writeLauncherDefinitionJsonToTemporaryFile(_ data: Data) throws -> URL {
         let name = "fsclient-remote-\(UUID().uuidString).fsclient"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name, isDirectory: false)
         try data.write(to: url, options: .atomic)
@@ -321,7 +321,7 @@ enum LaunchConfiguration {
     }
 
     /// Baut aus einer **http(s)-Definitions-URL** mit **jnlp** im Pfad dieselbe URL mit `…/api/fsclient…` (ohne lokale `.jnlp`-Datei oder XML).
-    private static func rewriteRemoteJnlpDefinitionURLToFsClientAPI(_ url: URL) -> URL {
+    private static func rewriteRemoteJnlpDefinitionURLToClientAPI(_ url: URL) -> URL {
         guard var comp = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         var path = comp.path
         if path.range(of: "/api/jnlp", options: .caseInsensitive) != nil {
@@ -339,14 +339,14 @@ enum LaunchConfiguration {
         return comp.url ?? url
     }
 
-    private enum FsClientDefinitionDownloadResult {
+    private enum LauncherDefinitionDownloadResult {
         case jsonData(Data)
         /// Exakte `Location`-Zeile (meist `fsclientlauncher:launch?…`), nach Normalisierung von `fsclientlauncher://`.
-        case redirectToFsClientLauncher(location: String)
+        case redirectToLauncherScheme(location: String)
     }
 
     /// Lädt Rohbytes (JSON) oder erkennt **302 → fsclientlauncher:** (Server startet den Launcher so).
-    private static func downloadFsClientDefinition(from url: URL) async throws -> FsClientDefinitionDownloadResult {
+    private static func downloadLauncherDefinition(from url: URL) async throws -> LauncherDefinitionDownloadResult {
         var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 120)
         req.setValue("*/*", forHTTPHeaderField: "Accept")
         let config = URLSessionConfiguration.default
@@ -354,7 +354,7 @@ enum LaunchConfiguration {
         config.allowsExpensiveNetworkAccess = true
         config.timeoutIntervalForRequest = 120
         config.timeoutIntervalForResource = 300
-        let delegate = FsClientDefinitionSessionDelegate()
+        let delegate = LauncherDefinitionSessionDelegate()
         let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
         let data: Data
@@ -363,12 +363,12 @@ enum LaunchConfiguration {
             (data, resp) = try await session.data(for: req)
         } catch {
             LaunchLoadTrace.log(
-                "downloadFsClientDefinition: Netzwerkfehler \(String(describing: type(of: error))) — \(error.localizedDescription) url=\(LaunchLoadTrace.preview(url.absoluteString))"
+                "downloadLauncherDefinition: Netzwerkfehler \(String(describing: type(of: error))) — \(error.localizedDescription) url=\(LaunchLoadTrace.preview(url.absoluteString))"
             )
-            throw mapFsClientDownloadTransportError(url: url, error: error)
+            throw mapLauncherDefinitionTransportError(url: url, error: error)
         }
         guard let http = resp as? HTTPURLResponse else {
-            throw LaunchError.fsclientRemoteHTTP(-1)
+            throw LaunchError.clientDefinitionRemoteHTTP(-1)
         }
         if (200 ... 299).contains(http.statusCode) {
             return .jsonData(data)
@@ -377,24 +377,24 @@ enum LaunchConfiguration {
             if let raw = http.value(forHTTPHeaderField: "Location")?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
                 let locNorm = normalizeLauncherRedirectLocation(raw)
                 LaunchLoadTrace.log(
-                    "downloadFsClientDefinition: HTTP \(http.statusCode) für \(LaunchLoadTrace.preview(url.absoluteString)) — Location=\(LaunchLoadTrace.preview(locNorm))"
+                    "downloadLauncherDefinition: HTTP \(http.statusCode) für \(LaunchLoadTrace.preview(url.absoluteString)) — Location=\(LaunchLoadTrace.preview(locNorm))"
                 )
                 let locLow = locNorm.lowercased()
                 if locLow.hasPrefix("fsclientlauncher:") {
-                    return .redirectToFsClientLauncher(location: locNorm)
+                    return .redirectToLauncherScheme(location: locNorm)
                 }
             } else {
                 LaunchLoadTrace.log(
-                    "downloadFsClientDefinition: HTTP \(http.statusCode) ohne Location für \(LaunchLoadTrace.preview(url.absoluteString))"
+                    "downloadLauncherDefinition: HTTP \(http.statusCode) ohne Location für \(LaunchLoadTrace.preview(url.absoluteString))"
                 )
             }
-            throw LaunchError.fsclientRemoteHTTP(http.statusCode)
+            throw LaunchError.clientDefinitionRemoteHTTP(http.statusCode)
         }
-        LaunchLoadTrace.log("downloadFsClientDefinition: HTTP \(http.statusCode) für \(LaunchLoadTrace.preview(url.absoluteString))")
-        throw LaunchError.fsclientRemoteHTTP(http.statusCode)
+        LaunchLoadTrace.log("downloadLauncherDefinition: HTTP \(http.statusCode) für \(LaunchLoadTrace.preview(url.absoluteString))")
+        throw LaunchError.clientDefinitionRemoteHTTP(http.statusCode)
     }
 
-    /// `fsclientlauncher://launch?…` aus Location-Header in die Form bringen, die `parseFsClientLauncherURI` erwartet.
+    /// `fsclientlauncher://launch?…` aus Location-Header in die Form bringen, die `parseLauncherLaunchURI` erwartet.
     private static func normalizeLauncherRedirectLocation(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.lowercased().hasPrefix("fsclientlauncher://"),
@@ -405,17 +405,17 @@ enum LaunchConfiguration {
     }
 
     /// Direktes `fsclientlauncher:…` oder per **HTTP-302-Location** (gleiche Parser wie CLI/Tray).
-    private static func loadFromFsClientLauncherString(
+    private static func loadFromLauncherURIString(
         _ trimmed: String,
         originalArgument: String,
         persistShortcutAfterLaunch: Bool
-    ) async throws -> ParsedFsClientLaunch {
+    ) async throws -> ParsedLaunchInput {
         let t0 = normalizeLauncherRedirectLocation(trimmed.trimmingCharacters(in: .whitespacesAndNewlines))
         guard let r = t0.range(of: "fsclientlauncher:", options: .caseInsensitive) else {
-            throw LaunchError.invalidFsClientLauncherURI
+            throw LaunchError.invalidLauncherLaunchURI
         }
         let t = "fsclientlauncher:" + String(t0[r.upperBound...])
-        if let inner = embeddedHttpURLFromFsClientLauncherJnlpBridge(t) {
+        if let inner = embeddedHttpURLFromLauncherJnlpBridge(t) {
             return try await load(firstArgument: inner, persistShortcutAfterLaunch: persistShortcutAfterLaunch)
         }
         var rest = String(t.dropFirst("fsclientlauncher:".count))
@@ -425,13 +425,13 @@ enum LaunchConfiguration {
         if let qIdx = rest.firstIndex(of: "?") {
             let pathPart = String(rest[..<qIdx]).trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
             if pathPart == "jnlp" {
-                throw LaunchError.invalidFsClientLauncherURI
+                throw LaunchError.invalidLauncherLaunchURI
             }
         }
-        let client = try parseFsClientLauncherURI(t)
-        let data = try jsonDataForPersistence(from: client)
-        return ParsedFsClientLaunch(
-            client: client,
+        let parameters = try parseLauncherLaunchURI(t)
+        let data = try jsonDataForPersistence(from: parameters)
+        return ParsedLaunchInput(
+            parameters: parameters,
             jsonData: data,
             openedFromDirectLocalFile: false,
             localFilePath: nil,
@@ -440,7 +440,7 @@ enum LaunchConfiguration {
         )
     }
 
-    private static func mapFsClientDownloadTransportError(url: URL, error: Error) -> LaunchError {
+    private static func mapLauncherDefinitionTransportError(url: URL, error: Error) -> LaunchError {
         if let u = error as? URLError {
             var lines: [String] = ["URLError \(u.code.rawValue): \(u.localizedDescription)"]
             if let fail = u.failureURLString, !fail.isEmpty {
@@ -476,11 +476,11 @@ enum LaunchConfiguration {
 
     // MARK: - JSON
 
-    private static func decodeFsClient(from data: Data) throws -> ApiFsClient {
+    private static func decodeLaunchParameters(from data: Data) throws -> LaunchParameters {
         do {
             let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
             let dict = obj.compactMapValues { $0 as? String }
-            return try ApiFsClient(args: dict)
+            return try LaunchParameters(args: dict)
         } catch let e as LaunchError {
             throw e
         } catch {
@@ -489,7 +489,7 @@ enum LaunchConfiguration {
     }
 }
 
-private final class FsClientDefinitionSessionDelegate: NSObject, URLSessionTaskDelegate {
+private final class LauncherDefinitionSessionDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(
         _ session: URLSession,
         task: URLSessionTask,
@@ -498,7 +498,7 @@ private final class FsClientDefinitionSessionDelegate: NSObject, URLSessionTaskD
         completionHandler: @escaping (URLRequest?) -> Void
     ) {
         HTTPOutboundRedirectPolicy.respondToRedirect(
-            context: "downloadFsClientDefinition",
+            context: "downloadLauncherDefinition",
             response: response,
             newRequest: request,
             completionHandler: completionHandler

@@ -4,10 +4,10 @@
 !.cursor/rules/
 .cursor/rules/*
 !.cursor/rules/macos-apple-icons.mdc
-!.cursor/rules/fsclientlauncher-kurz.mdc
+!.cursor/rules/trade-erp-launcher-kurz.mdc
 .build/
 dist/
 .swiftpm/
 BundledJDKs/
-Sources/FSClientLauncherLib/Resources/AppIcon.iconset/
+Sources/TradeERPLauncherLib/Resources/AppIcon.iconset/
 ref.iconset/

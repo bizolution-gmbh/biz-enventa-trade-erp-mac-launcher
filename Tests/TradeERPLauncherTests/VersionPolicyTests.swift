@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import FSClientLauncherLib
+@testable import TradeERPLauncherLib
 
 final class VersionPolicyTests: XCTestCase {
     func testSemanticParseRequiresAtLeastTwoComponents() {

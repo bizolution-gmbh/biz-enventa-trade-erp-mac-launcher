@@ -1,8 +1,8 @@
 import Foundation
 
-// MARK: - Launch-Parameter (ApiFsClientKeys)
+// MARK: - Launch-Parameter (LaunchParameterKey)
 
-enum ApiFsClientKeys {
+enum LaunchParameterKey {
     static let title = "title"
     static let broker = "broker"
     static let language = "language"
@@ -16,43 +16,43 @@ enum ApiFsClientKeys {
     static let displayConsole = "DisplayConsole"
 }
 
-struct ApiFsClient: Sendable {
+struct LaunchParameters: Sendable {
     var args: [String: String]
     let broker: String
 
     init(args: [String: String]) throws {
         self.args = args
-        guard let b = args[ApiFsClientKeys.broker]?.trimmingCharacters(in: .whitespacesAndNewlines), !b.isEmpty else {
+        guard let b = args[LaunchParameterKey.broker]?.trimmingCharacters(in: .whitespacesAndNewlines), !b.isEmpty else {
             throw LaunchError.missingBroker
         }
         self.broker = b
     }
 
     var language: String {
-        args[ApiFsClientKeys.language] ?? "de"
+        args[LaunchParameterKey.language] ?? "de"
     }
 
     var theme: String {
-        args[ApiFsClientKeys.theme] ?? "DefaultID"
+        args[LaunchParameterKey.theme] ?? "DefaultID"
     }
 
     var lookAndFeel: String {
-        args[ApiFsClientKeys.lookAndFeel] ?? "1"
+        args[LaunchParameterKey.lookAndFeel] ?? "1"
     }
 
     var noDomainAuth: Bool {
-        guard let v = args[ApiFsClientKeys.noDomainAuth] else { return false }
+        guard let v = args[LaunchParameterKey.noDomainAuth] else { return false }
         return (v as NSString).boolValue
     }
 
     var support: Bool {
-        guard let v = args[ApiFsClientKeys.support] else { return false }
+        guard let v = args[LaunchParameterKey.support] else { return false }
         return (v as NSString).boolValue
     }
 
     /// Nicht-leerer Anwendungstitel aus der `.fsclient`-JSON (`title`).
     var configurationTitle: String? {
-        let t = args[ApiFsClientKeys.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let t = args[LaunchParameterKey.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return t.isEmpty ? nil : t
     }
 

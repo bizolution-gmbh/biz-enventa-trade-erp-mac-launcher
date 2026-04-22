@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Remote-Definitions-URLs (Tray / Kürzel / Startargumente)
 
 /// Web-API zur **`.fsclient`-JSON-Definition** im Muster `http(s)://<Server>/<Anwendung>/api/fsclient?…` (Schritt 1).
-func remoteFsClientDefinitionApiURL(from raw: String) -> URL? {
+func remoteClientDefinitionApiURL(from raw: String) -> URL? {
     guard let u = resolveHttpURLFromUserString(raw) else { return nil }
     let pathDecoded = (u.path.removingPercentEncoding ?? u.path).lowercased()
     let abs = u.absoluteString.lowercased()
@@ -12,8 +12,8 @@ func remoteFsClientDefinitionApiURL(from raw: String) -> URL? {
 }
 
 /// Erkennt `http(s)://…/…fsclient…`-URLs (JSON-API), ggf. abweichend von `…/api/fsclient…`.
-func fsclientRemoteAPIURL(from raw: String) -> URL? {
-    if let u = remoteFsClientDefinitionApiURL(from: raw) { return u }
+func remoteDefinitionDocumentURL(from raw: String) -> URL? {
+    if let u = remoteClientDefinitionApiURL(from: raw) { return u }
     guard let u = resolveHttpURLFromUserString(raw) else { return nil }
     let lower = stripLeadingGarbageBeforeHTTPScheme(raw).lowercased()
     let blob = (u.path + "?" + (u.query ?? "")).lowercased() + u.absoluteString.lowercased() + lower
@@ -41,8 +41,8 @@ func jnlpRemoteAPIURL(from raw: String) -> URL? {
 }
 
 /// Ergebnis von `LaunchConfiguration.load`: Client-Konfiguration plus Roh-JSON für Import ins App-Support-Verzeichnis.
-struct ParsedFsClientLaunch: Sendable {
-    let client: ApiFsClient
+struct ParsedLaunchInput: Sendable {
+    let parameters: LaunchParameters
     /// Rohbytes der .fsclient-JSON (lokal gelesen oder per HTTP geladen).
     let jsonData: Data
     /// `true`, wenn die Konfiguration aus einer **lokalen Datei** kam (Finder, `openFile`, oder temporäre `.fsclient` nach Download von einer **http(s)-Definition-URL**).

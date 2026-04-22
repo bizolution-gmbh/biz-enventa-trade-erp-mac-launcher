@@ -1,10 +1,10 @@
 import SwiftUI
 
 /// Reiter „Anwendungen“: gleiche `Form`-Struktur wie die anderen Einstellungen-Reiter.
-struct FsClientShortcutsSettingsView: View {
-    @ObservedObject var store: FsClientShortcutsStore
+struct RegisteredApplicationsSettingsView: View {
+    @ObservedObject var store: RegisteredApplicationsStore
 
-    @State private var sheet: FsClientApplicationSheetState?
+    @State private var sheet: RegisteredApplicationSheetState?
 
     private var gridColumns: [GridItem] {
         [
@@ -52,12 +52,12 @@ struct FsClientShortcutsSettingsView: View {
         .formStyle(.grouped)
         .padding()
         .sheet(item: $sheet) { item in
-            FsClientShortcutSheet(store: store, sheetState: item)
+            RegisteredApplicationSheet(store: store, sheetState: item)
         }
     }
 
     @ViewBuilder
-    private func shortcutTile(_ rec: FsClientShortcutRecord) -> some View {
+    private func shortcutTile(_ rec: RegisteredApplicationRecord) -> some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 8) {
                 Group {

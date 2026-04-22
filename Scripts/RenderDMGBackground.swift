@@ -123,7 +123,7 @@ func drawImage(_ image: NSImage, in rect: NSRect) {
 }
 
 let root = projectRoot()
-let svgLogo = (root as NSString).appendingPathComponent("Sources/FSClientLauncherLib/Resources/enventa-logo-full.svg")
+let svgLogo = (root as NSString).appendingPathComponent("Sources/TradeERPLauncherLib/Resources/enventa-logo-full.svg")
 let outPath = (root as NSString).appendingPathComponent("Scripts/dmg_install_background.png")
 
 let Wi = Int(W)

@@ -1,7 +1,7 @@
 import XCTest
 import Foundation
 
-@testable import FSClientLauncherLib
+@testable import TradeERPLauncherLib
 
 final class LaunchCoordinatorFilterTests: XCTestCase {
     private func jar(os: String?, arch: String?) -> ApiJarFile {
@@ -58,7 +58,7 @@ final class HTTPOutboundRedirectPolicyTests: XCTestCase {
         XCTAssertEqual(out?.url?.absoluteString, next.absoluteString)
     }
 
-    func testRejectsFsClientLauncherRedirect() {
+    func testRejectsLauncherSchemeRedirect() {
         let next = URL(string: "fsclientlauncher:launch?broker=https%3A%2F%2Fx")!
         let req = URLRequest(url: next)
         let prev = URL(string: "https://server/app/api/fsclient")!

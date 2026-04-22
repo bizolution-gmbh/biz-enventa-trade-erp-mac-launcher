@@ -41,7 +41,7 @@ struct LauncherSettings: Codable, Equatable {
     var TraceLevel: TraceLevel = .Error
     var ProxyMode: ProxyMode = .Direct
 
-    private static let ioQueue = DispatchQueue(label: "de.frameworksystems.FSClientLauncher.settings")
+    private static let ioQueue = DispatchQueue(label: "de.bizolution.trade-erp-launcher.settings")
 
     /// Mitgelieferte Standard-`-D`-Properties für **Java 8** auf macOS (Menüleiste, Anwendungsname, Darstellung, Kantenglättung).
     static let recommendedJava8VmArgumentsForMacOS: [String] = [

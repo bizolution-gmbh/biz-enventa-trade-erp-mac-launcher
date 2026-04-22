@@ -8,5 +8,5 @@ globs: "**/Scripts/**,**/Resources/**,**/*.icns,**/AppIcon.*,**/Icon.png,**/enve
 
 - **App-Icons (`.icns`)**, **DMG-Volumen-Icons** (`--volicon`), **Menü-/Tray-Symbole**, **Marken-Grafiken:** an [Human Interface Guidelines – Icons](https://developer.apple.com/design/human-interface-guidelines/icons) und gängige **macOS-Darstellung** halten.
 - **Keine kantigen Vollflächen-Icons** auf dem Schreibtisch / im Finder: **transparente Außenbereiche** oder **abgerundete Silhouette**, damit das System konsistent komponieren kann.
-- **Pipeline (FSClientLauncherMac):** `Scripts/build_app_icon.sh` → `normalize_iconset_png.swift` (abgerundete Maske, ca. **22,3 %** Eckenradius) → `iconutil` / DMG-`volicon`.
+- **Pipeline (TradeERPLauncher):** `Scripts/build_app_icon.sh` → `normalize_iconset_png.swift` (abgerundete Maske, ca. **22,3 %** Eckenradius) → `iconutil` / DMG-`volicon`.
 - **Neue Assets/Skripte:** Kontrast, Lesbarkeit in **kleinen** Größen, **@2x**-Dichten; Pixel-Layout nur mit dokumentierten Konstanten (z. B. `dmg_layout_constants.sh` / `RenderDMGBackground.swift`).

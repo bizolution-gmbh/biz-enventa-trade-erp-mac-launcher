@@ -104,7 +104,7 @@ enum LaunchCoordinator {
     }
 
     static func run(
-        launch: ApiFsClient,
+        launch: LaunchParameters,
         settings: LauncherSettings,
         log: @escaping @Sendable (String) -> Void,
         versionContinue: @escaping @Sendable (_ required: String, _ installed: String) async -> Bool
@@ -120,9 +120,9 @@ enum LaunchCoordinator {
             break
         case .mustUpdate(let req, let ins):
             throw NSError(
-                domain: "FSClientLauncher",
+                domain: "TradeERPLauncher",
                 code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "FS Client Launcher muss aktualisiert werden (min. \(req), installiert \(ins))."]
+                userInfo: [NSLocalizedDescriptionKey: "enventa Trade ERP Launcher muss aktualisiert werden (min. \(req), installiert \(ins))."]
             )
         case .shouldAskToContinue(let req, let ins):
             let ok = await versionContinue(req, ins)
@@ -195,7 +195,7 @@ enum LaunchCoordinator {
 
     private static func startJavaClient(
         brokerInfo: ApiJarDownload,
-        launch: ApiFsClient,
+        launch: LaunchParameters,
         settings: LauncherSettings,
         runtime: JavaRuntimeResolver.Resolved,
         arch: String?,
@@ -205,7 +205,7 @@ enum LaunchCoordinator {
         var vm: [String] = []
         vm.append(contentsOf: brokerInfo.JavaProperties ?? [])
         stripDisplayConsoleSystemProperties(&vm)
-        vm.append("-D\(ApiFsClientKeys.displayConsole)=\(settings.DisplayConsole ? "true" : "false")")
+        vm.append("-D\(LaunchParameterKey.displayConsole)=\(settings.DisplayConsole ? "true" : "false")")
         switch settings.ProxyMode {
         case .Direct:
             vm.append("-Djava.net.useSystemProxies=false")
@@ -215,7 +215,7 @@ enum LaunchCoordinator {
         vm.append(contentsOf: settings.JavaVmArguments)
         vm.append(contentsOf: runtime.vmArguments)
 
-        let dockTitleRaw = launch.args[ApiFsClientKeys.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let dockTitleRaw = launch.args[LaunchParameterKey.title]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let dockName = dockTitleRaw.isEmpty ? "FS Client" : dockTitleRaw
         vm.append("-Xdock:name=\(dockName)")
         // Nur aus gebündeltem `Icon.png` (nicht `AppIcon.icns` — das ist das Launcher-Symbol mit den grünen Balken).
@@ -259,7 +259,7 @@ enum LaunchCoordinator {
                 return key.lowercased() == "displayconsole"
             }
             clientArgs.append(
-                "\(ApiFsClientKeys.displayConsole)=\(settings.DisplayConsole ? "True" : "False")"
+                "\(LaunchParameterKey.displayConsole)=\(settings.DisplayConsole ? "True" : "False")"
             )
         }
         args.append(contentsOf: clientArgs)
@@ -397,7 +397,7 @@ enum LaunchCoordinator {
     }
 
     /// `GetClientArgs` aus `LaunchService`.
-    private static func buildClientArgs(brokerInfo: ApiJarDownload, launch: ApiFsClient) -> [String] {
+    private static func buildClientArgs(brokerInfo: ApiJarDownload, launch: LaunchParameters) -> [String] {
         guard let minRaw = brokerInfo.LauncherMinVersion?.trimmingCharacters(in: .whitespacesAndNewlines),
             !minRaw.isEmpty,
             let minV = VersionPolicy.Semantic.parse(minRaw) else {
@@ -418,11 +418,11 @@ enum LaunchCoordinator {
             ]
         }
         var list: [String] = []
-        if launch.args[ApiFsClientKeys.devBroker] == nil {
-            list.append("\(ApiFsClientKeys.devBroker)=\((brokerInfo.DevBroker == true) ? "True" : "False")")
+        if launch.args[LaunchParameterKey.devBroker] == nil {
+            list.append("\(LaunchParameterKey.devBroker)=\((brokerInfo.DevBroker == true) ? "True" : "False")")
         }
-        if launch.args[ApiFsClientKeys.splashImage] == nil, let sp = brokerInfo.SplashImage {
-            list.append("\(ApiFsClientKeys.splashImage)=\(sp)")
+        if launch.args[LaunchParameterKey.splashImage] == nil, let sp = brokerInfo.SplashImage {
+            list.append("\(LaunchParameterKey.splashImage)=\(sp)")
         }
         for (k, v) in launch.args {
             list.append("\(k)=\(v)")

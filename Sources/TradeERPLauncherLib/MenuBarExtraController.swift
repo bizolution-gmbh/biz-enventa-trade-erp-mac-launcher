@@ -21,7 +21,7 @@ final class MenuBarExtraController: NSObject {
     func installIfNeeded() {
         if shortcutsObserver == nil {
             shortcutsObserver = NotificationCenter.default.addObserver(
-                forName: .fsclShortcutsChanged,
+                forName: .registeredApplicationsMenuDidChange,
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
@@ -35,13 +35,13 @@ final class MenuBarExtraController: NSObject {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
             // Menüleiste: exakt `enventa-mark-cropped.svg` als Template (WebKit-Snapshot), asynchron.
-            button.toolTip = "FS Client Launcher"
+            button.toolTip = "enventa Trade ERP Launcher"
             button.appearsDisabled = false
             let mark = TrayMarkTemplateRenderer.menuBarImage(side: 18)
             mark.size = NSSize(width: 18, height: 18)
             button.image = mark
         } else {
-            fputs("FSClientLauncher: NSStatusItem ohne Button — Menüleisten-Icon nicht darstellbar.\n", stderr)
+            fputs("TradeERPLauncher: NSStatusItem ohne Button — Menüleisten-Icon nicht darstellbar.\n", stderr)
         }
         if #available(macOS 11.0, *) {
             item.isVisible = true
@@ -76,12 +76,12 @@ final class MenuBarExtraController: NSObject {
         header.isEnabled = false
         menu.addItem(header)
 
-        let store = FsClientShortcutsStore.shared
+        let store = RegisteredApplicationsStore.shared
         // Java-/FS-Client-Marke aus gebündeltem `Icon.png` (wie Dock/Kachel), nicht das Launcher-Menüsymbol.
         let javaAppMenuIcon = LauncherBrandingImages.trayMenuJavaApplicationIcon(pointSize: 16)
 
         for rec in store.file.shortcuts {
-            let mi = NSMenuItem(title: rec.displayName, action: #selector(openFsClient(_:)), keyEquivalent: "")
+            let mi = NSMenuItem(title: rec.displayName, action: #selector(openRegisteredApplication(_:)), keyEquivalent: "")
             mi.target = self
             mi.representedObject = rec.launchSourceForRunner as NSString
             mi.image = javaAppMenuIcon
@@ -107,7 +107,7 @@ final class MenuBarExtraController: NSObject {
         menu.addItem(.separator())
 
         let quit = NSMenuItem(
-            title: "FS Client Launcher beenden",
+            title: "enventa Trade ERP Launcher beenden",
             action: #selector(quitApp(_:)),
             keyEquivalent: "q"
         )
@@ -128,7 +128,7 @@ final class MenuBarExtraController: NSObject {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let store = FsClientShortcutsStore.shared
+        let store = RegisteredApplicationsStore.shared
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 500, height: 360),
             styleMask: [.titled, .closable],
@@ -144,7 +144,7 @@ final class MenuBarExtraController: NSObject {
         window.delegate = del
         addApplicationWindowDelegate = del
         addApplicationWindow = window
-        let root = FsClientShortcutSheet(store: store, sheetState: .add, onComplete: { [weak self] in
+        let root = RegisteredApplicationSheet(store: store, sheetState: .add, onComplete: { [weak self] in
             self?.addApplicationWindow?.close()
         })
         let hosting = NSHostingController(rootView: root)
@@ -154,11 +154,11 @@ final class MenuBarExtraController: NSObject {
         window.makeKeyAndOrderFront(nil)
     }
 
-    @objc private func openFsClient(_ sender: Any?) {
+    @objc private func openRegisteredApplication(_ sender: Any?) {
         guard let item = sender as? NSMenuItem,
               let path = item.representedObject as? String
         else { return }
-        AppDelegate.shared?.launchFsClientFromMenuBar(path: path)
+        AppDelegate.shared?.launchRegisteredApplicationFromMenuBar(path: path)
     }
 
     @objc private func quitApp(_ sender: Any?) {

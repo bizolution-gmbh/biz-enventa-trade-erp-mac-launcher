@@ -33,7 +33,7 @@ final class InboundLaunchCoordinator {
     }
 
     func runLaunchArgument(_ raw: String, persistShortcutAfterLaunch: Bool = true) async {
-        let dedupeKey = FsClientShortcutsStore.normalizeShortcutTarget(raw).lowercased()
+        let dedupeKey = RegisteredApplicationsStore.normalizeShortcutTarget(raw).lowercased()
         if inFlightLaunchKeys.contains(dedupeKey) {
             LaunchLoadTrace.log("runLaunchArgument(String): Dedupe — Start übersprungen, key=\(LaunchLoadTrace.preview(dedupeKey, max: 220))")
             return

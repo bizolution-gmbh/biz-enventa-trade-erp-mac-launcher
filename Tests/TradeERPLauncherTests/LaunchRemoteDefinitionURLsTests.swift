@@ -1,10 +1,10 @@
 import XCTest
 
-@testable import FSClientLauncherLib
+@testable import TradeERPLauncherLib
 
 final class LaunchRemoteDefinitionURLsTests: XCTestCase {
-    func testRemoteFsClientDefinitionApiURL() {
-        let u = remoteFsClientDefinitionApiURL(from: "https://srv/crm/api/fsclient?lang=de")
+    func testRemoteClientDefinitionApiURL() {
+        let u = remoteClientDefinitionApiURL(from: "https://srv/crm/api/fsclient?lang=de")
         XCTAssertNotNil(u)
         XCTAssertTrue(u?.absoluteString.contains("/api/fsclient") ?? false)
     }
@@ -14,8 +14,8 @@ final class LaunchRemoteDefinitionURLsTests: XCTestCase {
         XCTAssertNotNil(u)
     }
 
-    func testFsclientRemoteAPIURLDetectsFsclientInPath() {
-        let u = fsclientRemoteAPIURL(from: "https://host/x/fsclient.json")
+    func testRemoteDefinitionDocumentURLDetectsFsclientInPath() {
+        let u = remoteDefinitionDocumentURL(from: "https://host/x/fsclient.json")
         XCTAssertNotNil(u)
     }
 }

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-enum FsClientApplicationSheetState: Identifiable {
+enum RegisteredApplicationSheetState: Identifiable {
     case add
     case edit(UUID)
     var id: String {
@@ -14,15 +14,15 @@ enum FsClientApplicationSheetState: Identifiable {
 }
 
 /// Gemeinsame Maske „Anwendung hinzufügen“ / „Anwendung bearbeiten“ (Einstellungen-Reiter oder Tray-Fenster).
-struct FsClientShortcutSheet: View {
-    @ObservedObject var store: FsClientShortcutsStore
-    let sheetState: FsClientApplicationSheetState
+struct RegisteredApplicationSheet: View {
+    @ObservedObject var store: RegisteredApplicationsStore
+    let sheetState: RegisteredApplicationSheetState
     /// Wenn gesetzt (Tray-Fenster): nach OK/Abbrechen schließen; bei `nil` nur SwiftUI-`dismiss` (Sheet in Einstellungen).
     let onComplete: (() -> Void)?
 
     init(
-        store: FsClientShortcutsStore,
-        sheetState: FsClientApplicationSheetState,
+        store: RegisteredApplicationsStore,
+        sheetState: RegisteredApplicationSheetState,
         onComplete: (() -> Void)? = nil
     ) {
         self.store = store
@@ -73,7 +73,7 @@ struct FsClientShortcutSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .default))
                     Button {
-                        pickFsClientFile()
+                        pickLauncherDefinitionFile()
                     } label: {
                         Image(systemName: "magnifyingglass")
                             .font(.body.weight(.medium))
@@ -122,13 +122,13 @@ struct FsClientShortcutSheet: View {
     }
 
     private var canSave: Bool {
-        FsClientShortcutsStore.isValidShortcutTarget(pathText)
+        RegisteredApplicationsStore.isValidShortcutTarget(pathText)
     }
 
     /// Eingabe vorhanden, aber noch nicht gültig — kurzer Hinweis statt nur ausgegrautem OK.
     private var pathValidationShowsHint: Bool {
         let t = pathText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !t.isEmpty && !FsClientShortcutsStore.isValidShortcutTarget(pathText)
+        return !t.isEmpty && !RegisteredApplicationsStore.isValidShortcutTarget(pathText)
     }
 
     private func closeAfterUserAction() {
@@ -139,12 +139,12 @@ struct FsClientShortcutSheet: View {
     private func save() {
         let userTitle = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
         let rawPath = pathText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard FsClientShortcutsStore.isValidShortcutTarget(rawPath) else { return }
+        guard RegisteredApplicationsStore.isValidShortcutTarget(rawPath) else { return }
 
         var path = rawPath
         if rawPath != declinedMacLauncherBridgeForPath,
            LaunchConfiguration.shouldOfferLauncherBridge(forHttpShortcut: rawPath),
-           let built = LaunchConfiguration.fsClientLauncherLaunchURLFromWebDefinitionHTTP(rawPath) {
+           let built = LaunchConfiguration.launcherLaunchURLFromWebDefinitionHTTP(rawPath) {
             let alert = NSAlert()
             alert.messageText = "Adresse für den Mac umwandeln?"
             alert.informativeText =
@@ -163,10 +163,10 @@ struct FsClientShortcutSheet: View {
             }
         }
 
-        guard FsClientShortcutsStore.isValidShortcutTarget(path) else { return }
-        let norm = FsClientShortcutsStore.normalizeShortcutTarget(path)
+        guard RegisteredApplicationsStore.isValidShortcutTarget(path) else { return }
+        let norm = RegisteredApplicationsStore.normalizeShortcutTarget(path)
         let backing = recordId.flatMap { id in store.file.shortcuts.first { $0.id == id }?.importedFilePath }
-        let fromFile = FsClientShortcutsStore.readFsClientTitleIfPresent(fromShortcutTarget: path, backingFile: backing)
+        let fromFile = RegisteredApplicationsStore.readDefinitionTitleIfPresent(fromShortcutTarget: path, backingFile: backing)
         let defaultFromPath: String
         if norm.lowercased().hasPrefix("http://") || norm.lowercased().hasPrefix("https://") {
             defaultFromPath = URL(string: norm)?.host ?? "FS Client"
@@ -199,7 +199,7 @@ struct FsClientShortcutSheet: View {
         }
     }
 
-    private func pickFsClientFile() {
+    private func pickLauncherDefinitionFile() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false

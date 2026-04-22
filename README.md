@@ -1,4 +1,6 @@
-# FS Client Launcher (macOS)
+# enventa Trade ERP Launcher (macOS)
+
+**Bizolution Launcher für enventa Trade ERP (macOS)** — entwickelt von der **BIZOLUTION GmbH** (demnächst **bizolution GmbH**) für **enventa Trade ERP** der enventa Group.
 
 Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Client Launcher** (.NET / WPF), angelehnt an die dekompilierte Logik (`LaunchService`, `JavaRuntimeService`, `CacheService`, `ConfigService`, `FS.Hosting.Broker.Model`).
 
@@ -9,16 +11,16 @@ Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Clie
 - Paralleler Download der JARs aus **`{broker}/javaclient/`**, SHA-1-Prüfung, optional Entpacken nativer Bibliotheken (ZIP).
 - Auswahl der **Java-Version (8 / 11 / 21)** gemäß Broker-Angaben und Einstellung *Recommended / Supported / Experimental* (wie `UseJavaVersion`).
 - Start von **`bin/java`** mit korrektem **Klassenpfad** (`:` unter macOS), Arbeitsverzeichnis = JAR-Cache, **PATH**-Präfix für native Bibliotheken (wie unter Windows).
-- Konfiguration in **`~/Library/Application Support/enventa Group/FS Client Launcher/launcherconfig.json`** (gleiche Schlüsselnamen wie in der .NET-App).
-- JAR-Cache unter **`~/Library/Caches/enventa Group/FS Client Launcher/.jarcache/`** (Trennung Roaming vs. Local wie unter Windows).
-- Logdateien unter **`~/Library/Application Support/enventa Group/FS Client Launcher/Logfiles/`** (wie `Logfiles` unter Windows).
+- Konfiguration (macOS) in **`~/Library/Application Support/bizolution/enventa Trade ERP Launcher/launcherconfig.json`** (gleiche **Schlüsselnamen** wie in der Windows-`.NET`-App; unter Windows liegt die Datei weiter unter *enventa Group* / *FS Client Launcher*).
+- JAR-Cache unter **`~/Library/Caches/bizolution/enventa Trade ERP Launcher/.jarcache/`** (Trennung Roaming vs. Local analog Windows).
+- Logdateien unter **`~/Library/Application Support/bizolution/enventa Trade ERP Launcher/Logfiles/`** (wie `Logfiles` unter Windows).
 - **Cache-Bereinigung** wie `CacheService.CleanupCache` inkl. Logdatei-Bereinigung; in der Konfiguration steuerbar und nach dem Java-Lauf parallel ausgeführt.
-- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/FSClientLauncherLib/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
-- **Java-Dock & Kacheln:** `Sources/FSClientLauncherLib/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
+- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/TradeERPLauncherLib/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
+- **Java-Dock & Kacheln:** `Sources/TradeERPLauncherLib/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
 
 ## JDK / JRE mitliefern
 
-Unter **`FS Client Launcher.app/Contents/Resources/`** erwartet der Launcher:
+Unter **`enventa Trade ERP Launcher.app/Contents/Resources/`** erwartet der Launcher:
 
 | Verzeichnis | Inhalt |
 |-------------|--------|
@@ -45,7 +47,7 @@ In **Einstellungen › JVM-Argumente** erscheinen die **zusätzlichen** Felder f
 Hilfsskript (lädt Temurin 11/21 von Adoptium; Lizenz beachten):
 
 ```bash
-./Scripts/download_jdks.sh aarch64 "/Pfad/zu/FS Client Launcher.app/Contents/Resources"
+./Scripts/download_jdks.sh aarch64 "/Pfad/zu/enventa Trade ERP Launcher.app/Contents/Resources"
 ```
 
 **Java 8 + JavaFX (nur Apple Silicon / aarch64):** `./Scripts/download_zulu8_fx_jre.sh` legt Azul Zulu 8 JDK FX unter `BundledJDKs/jre8/` ab.
@@ -58,7 +60,7 @@ swift test
 # Wenn `swift test` mit „no such module XCTest“ scheitert: aktives Developer-Dir auf **Xcode.app** setzen
 # (`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`) — reine CLT-Umgebungen liefern XCTest mitunter nicht zuverlässig für SPM-Tests.
 # oder bei Problemen mit SwiftPM:
-swiftc -O Sources/FSClientLauncherLib/*.swift -o FSClientLauncher \
+swiftc -O Sources/TradeERPLauncherLib/*.swift -o TradeERPLauncher \
   -sdk "$(xcrun --sdk macosx --show-sdk-path)" -target arm64-apple-macosx13.0
 ```
 
@@ -72,7 +74,7 @@ Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bu
 
 ## Installation
 
-1. **App bauen** (siehe oben): z. B. `./Scripts/build_app.sh` → Ergebnis: `dist/FS Client Launcher.app`.
+1. **App bauen** (siehe oben): z. B. `./Scripts/build_app.sh` → Ergebnis: `dist/enventa Trade ERP Launcher.app`.
 2. **JDKs** entweder beim Build über `BundledJDKs/` mitliefern lassen oder unter `…/Contents/Resources/` (`jdk11/`, `jdk21/`, optional `jre8/`) legen bzw. `FSCL_JDK11` / `FSCL_JDK21` / `FSCL_JRE8` setzen.
 3. Die **`.app`** nach **`/Applications`** ziehen (oder wo du Programme ablegst).
 4. Beim **ersten Start** ggf. Rechtsklick → **„Öffnen“** wählen (Gatekeeper), falls die App nicht signiert/notarisiert ist.
@@ -82,17 +84,17 @@ Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bu
 
 Die Datei muss dasselbe **JSON** enthalten wie unter Windows (Schlüssel wie `broker`, `language`, …) — der Launcher liest sie wie eine normale JSON-Startdatei.
 
-- **Doppelklick**: Wenn die App die Standard-App für `.fsclient` ist (nach Installation ggf. unter *Informationen → „Öffnen mit“* einmal **FS Client Launcher** wählen), startet der Client direkt.
+- **Doppelklick**: Wenn die App die Standard-App für `.fsclient` ist (nach Installation ggf. unter *Informationen → „Öffnen mit“* einmal **enventa Trade ERP Launcher** wählen), startet der Client direkt.
 - **Über das Terminal** (Pfad anpassen):
 
   ```bash
-  open -a "FS Client Launcher" /Pfad/zur/datei.fsclient
+  open -a "enventa Trade ERP Launcher" /Pfad/zur/datei.fsclient
   ```
 
   oder mit dem gebauten Binary:
 
   ```bash
-  "/Pfad/zu/FS Client Launcher.app/Contents/MacOS/FSClientLauncher" /Pfad/zur/datei.fsclient
+  "/Pfad/zu/enventa Trade ERP Launcher.app/Contents/MacOS/TradeERPLauncher" /Pfad/zur/datei.fsclient
   ```
 
 - **URL-Schema** (wie unter Windows): Links im Stil `fsclientlauncher:launch?broker=…` öffnen die App mit dem passenden Handler.

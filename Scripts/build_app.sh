@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP_NAME="FS Client Launcher.app"
+APP_NAME="enventa Trade ERP Launcher.app"
 DEST="${ROOT}/dist/${APP_NAME}"
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
 TARGET="arm64-apple-macosx13.0"
-BIN="${DEST}/Contents/MacOS/FSClientLauncher"
+BIN="${DEST}/Contents/MacOS/TradeERPLauncher"
 
 echo "==> Release-Binary bauen"
 mkdir -p "${ROOT}/dist"
 if (cd "$ROOT" && swift build -c release 2>/dev/null); then
-  cp "${ROOT}/.build/release/FSClientLauncher" "${ROOT}/dist/FSClientLauncher"
+  cp "${ROOT}/.build/release/TradeERPLauncher" "${ROOT}/dist/TradeERPLauncher"
 else
   echo "(swift build nicht möglich — Fallback: swiftc)"
-  swiftc -O "${ROOT}/Sources/FSClientLauncherLib/"*.swift -o "${ROOT}/dist/FSClientLauncher" -sdk "$SDK" -target "$TARGET"
+  swiftc -O "${ROOT}/Sources/TradeERPLauncherLib/"*.swift -o "${ROOT}/dist/TradeERPLauncher" -sdk "$SDK" -target "$TARGET"
 fi
 
 echo "==> App-Bundle: ${DEST}"
@@ -23,12 +23,12 @@ mkdir -p "${DEST}/Contents/Resources"
 cp "${ROOT}/Scripts/Info.plist" "${DEST}/Contents/Info.plist"
 # Ohne PkgInfo (APPL + Signatur) zeigt Finder mitunter nur das generische Programm-Symbol.
 printf 'APPL????' > "${DEST}/Contents/PkgInfo"
-cp "${ROOT}/dist/FSClientLauncher" "$BIN"
+cp "${ROOT}/dist/TradeERPLauncher" "$BIN"
 chmod +x "$BIN"
-if compgen -G "${ROOT}/Sources/FSClientLauncherLib/Resources/*.svg" > /dev/null; then
-  cp "${ROOT}/Sources/FSClientLauncherLib/Resources/"*.svg "${DEST}/Contents/Resources/" 2>/dev/null || true
+if compgen -G "${ROOT}/Sources/TradeERPLauncherLib/Resources/*.svg" > /dev/null; then
+  cp "${ROOT}/Sources/TradeERPLauncherLib/Resources/"*.svg "${DEST}/Contents/Resources/" 2>/dev/null || true
 fi
-RES_ICNS="${ROOT}/Sources/FSClientLauncherLib/Resources/AppIcon.icns"
+RES_ICNS="${ROOT}/Sources/TradeERPLauncherLib/Resources/AppIcon.icns"
 echo "==> App-Icon (AppIcon.icns)"
 # Neu erzeugen nur mit rsvg; scheitert iconutil, bleibt die bestehende .icns durch atomares Schreiben im Skript erhalten.
 if command -v rsvg-convert >/dev/null 2>&1; then
@@ -41,7 +41,7 @@ else
   echo "Hinweis: Kein AppIcon.icns — für Finder-Icon: brew install librsvg && ./Scripts/build_app_icon.sh" >&2
 fi
 
-FS_ICON="${ROOT}/Sources/FSClientLauncherLib/Resources/Icon.png"
+FS_ICON="${ROOT}/Sources/TradeERPLauncherLib/Resources/Icon.png"
 if [[ -f "$FS_ICON" ]]; then
   cp "$FS_ICON" "${DEST}/Contents/Resources/Icon.png"
 else
@@ -81,7 +81,7 @@ echo "==> DMG (read-only, UDZO)"
 # Mit create-dmg: Layout per AppleScript; `Scripts/dmg_finder_template.applescript` blendet die Finder-Sidebar aus
 # (sonst wirkt das Fenster auf macOS 13+ oft deutlich breiter als --window-size).
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${ROOT}/Scripts/Info.plist" 2>/dev/null || echo "0")"
-DMG="${ROOT}/dist/FS-Client-Launcher-${VERSION}.dmg"
+DMG="${ROOT}/dist/enventa-trade-erp-launcher-${VERSION}.dmg"
 STAGE="$(mktemp -d "${TMPDIR:-/tmp}/fscl-dmg.XXXXXX")"
 BG_TMP=""
 cleanup_stage() {
@@ -117,7 +117,7 @@ if command -v create-dmg >/dev/null 2>&1; then
   DROP_X=$((WIN_W * 74 / 100))
   DROP_Y="${ICON_Y}"
   CREATE_ARGS=(
-    --volname "FS Client Launcher"
+    --volname "enventa Trade ERP Launcher"
     --window-pos 200 120
     --window-size "${WIN_W}" "${WIN_H}"
     --icon-size "${ICON_SZ}"
@@ -160,7 +160,7 @@ if command -v create-dmg >/dev/null 2>&1; then
         echo "    → DMG-Icon-Layout: proportional; Fenster = PNG ${W}×${H} (≠ Kalibrierung — ggf. dmg_layout_constants.sh anpassen)" >&2
       fi
       CREATE_ARGS=(
-        --volname "FS Client Launcher"
+        --volname "enventa Trade ERP Launcher"
         --window-pos 200 120
         --window-size "${WIN_OUT_W}" "${WIN_OUT_H}"
         --icon-size "${ICON_SZ}"
@@ -206,7 +206,7 @@ else
   echo "    → hdiutil (einfaches Finder-Fenster — für klassisches DMG: brew install create-dmg)" >&2
   ln -sf /Applications "${STAGE}/Applications"
   if hdiutil create \
-    -volname "FS Client Launcher" \
+    -volname "enventa Trade ERP Launcher" \
     -srcfolder "${STAGE}" \
     -ov \
     -format UDZO \
@@ -217,7 +217,7 @@ else
     RW="${ROOT}/dist/.fscl-dmg-rw-$$.dmg"
     rm -f "${RW}"
     hdiutil create \
-      -volname "FS Client Launcher" \
+      -volname "enventa Trade ERP Launcher" \
       -srcfolder "${STAGE}" \
       -ov \
       -format UDRW \

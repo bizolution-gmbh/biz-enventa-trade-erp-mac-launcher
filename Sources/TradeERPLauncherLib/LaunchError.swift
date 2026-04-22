@@ -6,7 +6,7 @@ enum LaunchError: Error, LocalizedError {
     case invalidURI(String)
     /// Broker-Basis aus der **.fsclient**-JSON ließ sich nicht in eine gültige **http(s)**-URL überführen.
     case invalidBrokerURI(String)
-    case invalidFsClientLauncherURI
+    case invalidLauncherLaunchURI
     case invalidJSONFile(Error)
     case brokerHTTP(Int)
     case brokerDownload(Error)
@@ -17,7 +17,7 @@ enum LaunchError: Error, LocalizedError {
     case noMainJar
     case clientExit(Int32)
     /// Download einer per **http(s)** übergebenen `.fsclient`-Definition.
-    case fsclientRemoteHTTP(Int)
+    case clientDefinitionRemoteHTTP(Int)
     /// Netzwerk-/URLSession-Fehler beim Abruf der Definitions-URL (nicht der HTTP-Status vom Server).
     case fsclientDefinitionDownloadFailed(url: String, reason: String)
     /// Broker-JAR oder Splash verweist auf kein http(s) (z. B. `file:`) — wird aus Sicherheitsgründen abgelehnt.
@@ -34,7 +34,7 @@ enum LaunchError: Error, LocalizedError {
             }
         case .invalidBrokerURI(let s):
             "Broker-Adresse nicht unterstützt oder unlesbar: \(s)\n\nErwartet wird ein http(s)-Broker-Stamm wie „http://server/Anwendungsname“ (Feld „broker“ in der vom Server gelieferten Konfiguration)."
-        case .invalidFsClientLauncherURI:
+        case .invalidLauncherLaunchURI:
             "Erwartet z. B. fsclientlauncher:launch?broker=https%3A%2F%2F… oder fsclientlauncher:jnlp?url=https%3A%2F%2F…%2Fapi%2Fjnlp%3F… (Brücke zur http(s)-Adresse) bzw. eine lokale .fsclient-JSON-Datei wie unter Windows."
         case .invalidJSONFile(let e): "JSON konnte nicht gelesen werden: \(e.localizedDescription)"
         case .brokerHTTP(let c): "Broker-Antwort HTTP \(c)"
@@ -45,7 +45,7 @@ enum LaunchError: Error, LocalizedError {
         case .javaHomeMissing(let msg): msg
         case .noMainJar: "Weder MainClass noch als „main“ markiertes JAR in den Broker-Daten."
         case .clientExit(let code): "Java-Prozess beendet mit Code \(code)."
-        case .fsclientRemoteHTTP(let c):
+        case .clientDefinitionRemoteHTTP(let c):
             if (300 ... 399).contains(c) {
                 "Download der .fsclient-Datei: HTTP \(c) (Weiterleitung). Es kam keine JSON-Definition an — Anmeldung am Server, Proxy oder ungültige „Location“-Weiterleitung prüfen."
             } else {

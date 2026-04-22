@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>de</string>
 	<key>CFBundleDisplayName</key>
-	<string>FS Client Launcher</string>
+	<string>enventa Trade ERP Launcher</string>
 	<key>CFBundleExecutable</key>
-	<string>FSClientLauncher</string>
+	<string>TradeERPLauncher</string>
 	<key>CFBundleIdentifier</key>
-	<string>de.frameworksystems.FSClientLauncher</string>
+	<string>de.bizolution.trade-erp-launcher</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>FS Client Launcher</string>
+	<string>enventa Trade ERP Launcher</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,7 +45,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>FS Client Launcher</string>
+			<string>enventa Trade ERP Launcher</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>fsclientlauncher</string>
@@ -56,7 +56,7 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>FS Client Launcher Konfiguration</string>
+			<string>enventa Trade ERP Launcher Konfiguration</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>

@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "FSClientLauncherMac",
+    name: "TradeERPLauncher",
     platforms: [
         .macOS(.v13),
     ],
     products: [
-        .executable(name: "FSClientLauncher", targets: ["FSClientLauncher"]),
+        .executable(name: "TradeERPLauncher", targets: ["TradeERPLauncher"]),
     ],
     targets: [
         .target(
-            name: "FSClientLauncherLib",
-            path: "Sources/FSClientLauncherLib",
+            name: "TradeERPLauncherLib",
+            path: "Sources/TradeERPLauncherLib",
             exclude: [
                 // Werden vom Build-Skript aus dem Arbeitsbaum gelesen/kopiert, nicht als SPM-Ressource eingebunden (vermeidet „unhandled files“-Warnung).
                 "Resources/AppIcon.icns",
@@ -25,15 +25,15 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "FSClientLauncher",
-            dependencies: ["FSClientLauncherLib"],
-            path: "Sources/FSClientLauncher",
+            name: "TradeERPLauncher",
+            dependencies: ["TradeERPLauncherLib"],
+            path: "Sources/TradeERPLauncher",
             sources: ["Main.swift"]
         ),
         .testTarget(
-            name: "FSClientLauncherTests",
-            dependencies: ["FSClientLauncherLib"],
-            path: "Tests/FSClientLauncherTests"
+            name: "TradeERPLauncherTests",
+            dependencies: ["TradeERPLauncherLib"],
+            path: "Tests/TradeERPLauncherTests"
         ),
     ]
 )

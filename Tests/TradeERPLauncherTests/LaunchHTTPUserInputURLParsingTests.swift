@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import FSClientLauncherLib
+@testable import TradeERPLauncherLib
 
 final class LaunchHTTPUserInputURLParsingTests: XCTestCase {
     func testSanitizeFullWidthColonSlash() {
@@ -15,7 +15,7 @@ final class LaunchHTTPUserInputURLParsingTests: XCTestCase {
         XCTAssertTrue(t.hasPrefix("https://host/"))
     }
 
-    func testStripLeadingDoesNotBreakFsClientLauncherScheme() {
+    func testStripLeadingDoesNotBreakLauncherScheme() {
         let raw = "fsclientlauncher:launch?broker=https%3A%2F%2Fx"
         XCTAssertEqual(stripLeadingGarbageBeforeHTTPScheme(raw), raw)
     }

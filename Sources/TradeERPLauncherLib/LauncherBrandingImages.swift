@@ -14,15 +14,15 @@ enum LauncherBrandingImages {
     private static let macOSIconSquircleCornerFraction: CGFloat = 0.2237
 
     /// Mindestgröße (logische Punkte), damit defekte Mini-PNGs ignoriert werden.
-    private static let minimumFsClientIconDimension: CGFloat = 16
+    private static let minimumJavaClientDockIconDimension: CGFloat = 16
 
-    private static func isUsableFsClientIconImage(_ image: NSImage) -> Bool {
+    private static func isUsableJavaClientDockIconImage(_ image: NSImage) -> Bool {
         let s = image.size
-        return s.width >= minimumFsClientIconDimension && s.height >= minimumFsClientIconDimension
+        return s.width >= minimumJavaClientDockIconDimension && s.height >= minimumJavaClientDockIconDimension
     }
 
     /// `Bundle.main` (`…/Contents/Resources/`), sonst SwiftPM-Ressourcen-`.bundle` neben dem Binary.
-    private static func urlForBundledFsClientIconPNG() -> URL? {
+    private static func urlForBundledJavaClientDockIconPNG() -> URL? {
         if let u = Bundle.main.url(forResource: "Icon", withExtension: "png"),
            FileManager.default.isReadableFile(atPath: u.path) {
             return u
@@ -45,10 +45,10 @@ enum LauncherBrandingImages {
 
     /// Nur gebündeltes **`Icon.png`** (Basis für Kachel oben links und Java-Dock).
     static func sourceImageForJavaAndTiles() -> NSImage? {
-        guard let url = urlForBundledFsClientIconPNG(),
+        guard let url = urlForBundledJavaClientDockIconPNG(),
               let img = NSImage(contentsOf: url),
               !img.representations.isEmpty,
-              isUsableFsClientIconImage(img)
+              isUsableJavaClientDockIconImage(img)
         else { return nil }
         return img
     }

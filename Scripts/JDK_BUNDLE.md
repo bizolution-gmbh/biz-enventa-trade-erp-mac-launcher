@@ -1,8 +1,8 @@
-# JDK / JRE in „FS Client Launcher.app“ mitliefern
+# JDK / JRE in „enventa Trade ERP Launcher.app“ mitliefern
 
 ## Ablage im App-Bundle
 
-Der Launcher sucht unter **`FS Client Launcher.app/Contents/Resources/`** (siehe `AppPaths.launcherRuntimeBaseDirectory` und `JavaRuntimeResolver`):
+Der Launcher sucht unter **`enventa Trade ERP Launcher.app/Contents/Resources/`** (siehe `AppPaths.launcherRuntimeBaseDirectory` und `JavaRuntimeResolver`):
 
 | Ordner | Erwartung |
 |--------|-----------|
@@ -31,12 +31,12 @@ Typisch nach Entpacken eines **Temurin**-Archivs:
 Lege die **gleiche Ordnerstruktur** unter **`BundledJDKs/`** im Projektroot ab (nicht versionieren, siehe `.gitignore`):
 
 ```text
-FSClientLauncherMac/BundledJDKs/jdk11/…
-FSClientLauncherMac/BundledJDKs/jdk21/…
-FSClientLauncherMac/BundledJDKs/jre8/…
+enventa Trade ERP Launcher/BundledJDKs/jdk11/…
+enventa Trade ERP Launcher/BundledJDKs/jdk21/…
+enventa Trade ERP Launcher/BundledJDKs/jre8/…
 ```
 
-`Scripts/build_app.sh` kopiert sie mit **`ditto`** nach **`dist/FS Client Launcher.app/Contents/Resources/`**, sofern die Verzeichnisse existieren.
+`Scripts/build_app.sh` kopiert sie mit **`ditto`** nach **`dist/enventa Trade ERP Launcher.app/Contents/Resources/`**, sofern die Verzeichnisse existieren.
 
 Alternativer Quellpfad:
 

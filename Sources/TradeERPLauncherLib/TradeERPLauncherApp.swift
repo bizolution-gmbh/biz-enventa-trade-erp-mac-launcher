@@ -2,8 +2,8 @@ import AppKit
 import Darwin
 import SwiftUI
 
-/// Einstiegspunkt für das ausführbare Ziel; wird von `Sources/FSClientLauncher/Main.swift` aufgerufen.
-public enum FSClientLauncherEntry {
+/// Einstiegspunkt für das ausführbare Ziel; wird von `Sources/TradeERPLauncher/Main.swift` aufgerufen.
+public enum TradeERPLauncherEntry {
     @MainActor
     public static func main() {
         let app = NSApplication.shared
@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         Self.shared = self
         AppPaths.migrateLegacyDirectoriesIfNeeded()
-        FsClientShortcutsStore.shared.bootstrapTrayPersistenceAtLaunch()
+        RegisteredApplicationsStore.shared.bootstrapTrayPersistenceAtLaunch()
         MenuBarExtraController.shared.installIfNeeded()
         Self.installMinimalEditMenuIfNeeded()
         // Kein eigenes `applicationIconImage`: Dock nutzt das Bundle-Icon; Identifikation über Menüleiste (Tray).
@@ -91,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // Menüleisten-App: Prozess bleibt aktiv; Beenden nur über „FS Client Launcher beenden“ im Tray.
+        // Menüleisten-App: Prozess bleibt aktiv; Beenden nur über „enventa Trade ERP Launcher beenden“ im Tray.
         false
     }
 
@@ -121,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
         keepAliveActivity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiated],
-            reason: "FS Client Launcher (Menüleiste) bleibt aktiv"
+            reason: "enventa Trade ERP Launcher (Menüleiste) bleibt aktiv"
         )
         MenuBarExtraController.shared.installIfNeeded()
 
@@ -164,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         showConfigWindow()
     }
 
-    func launchFsClientFromMenuBar(path: String) {
+    func launchRegisteredApplicationFromMenuBar(path: String) {
         didStartLaunchFlow = true
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         let persistShortcut = !trimmed.lowercased().hasPrefix("fsclientlauncher:")
@@ -178,12 +178,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
         let root = NSHostingController(
-            rootView: ConfigRootView().environmentObject(FsClientShortcutsStore.shared)
+            rootView: ConfigRootView().environmentObject(RegisteredApplicationsStore.shared)
         )
         let win = NSWindow(contentViewController: root)
         win.setContentSize(NSSize(width: 620, height: 640))
         win.styleMask = [.titled, .closable, .miniaturizable]
-        win.title = "FS Client Launcher"
+        win.title = "enventa Trade ERP Launcher"
         win.center()
         win.delegate = self
         win.makeKeyAndOrderFront(nil)
@@ -196,29 +196,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return l.hasPrefix("http://") || l.hasPrefix("https://")
     }
 
-    private func handleSuccessfulClientLaunch(parsed: ParsedFsClientLaunch) {
+    private func handleSuccessfulClientLaunch(parsed: ParsedLaunchInput) {
         guard parsed.persistShortcutAfterLaunch else {
             MenuBarExtraController.shared.installIfNeeded()
             return
         }
-        let store = FsClientShortcutsStore.shared
-        let name = parsed.client.displayNameForShortcutMenu(
+        let store = RegisteredApplicationsStore.shared
+        let name = parsed.parameters.displayNameForShortcutMenu(
             originalArgument: parsed.originalArgument,
             localFilePath: parsed.localFilePath
         )
         do {
             if parsed.openedFromDirectLocalFile, let local = parsed.localFilePath {
-                if AppPaths.isEphemeralFsClientPath(local), Self.looksLikeHttpOrHttps(parsed.originalArgument) {
-                    let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
-                    let displayURL = FsClientShortcutsStore.normalizeShortcutTarget(parsed.originalArgument)
+                if AppPaths.isEphemeralLauncherDefinitionPath(local), Self.looksLikeHttpOrHttps(parsed.originalArgument) {
+                    let saved = try AppPaths.saveImportedDefinitionJson(parsed.jsonData)
+                    let displayURL = RegisteredApplicationsStore.normalizeShortcutTarget(parsed.originalArgument)
                     store.upsertAfterSuccessfulLaunch(
                         sourceKey: parsed.originalArgument,
                         displayPath: displayURL,
                         importedFilePath: saved,
                         defaultDisplayName: name
                     )
-                } else if AppPaths.isEphemeralFsClientPath(local) {
-                    let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
+                } else if AppPaths.isEphemeralLauncherDefinitionPath(local) {
+                    let saved = try AppPaths.saveImportedDefinitionJson(parsed.jsonData)
                     store.upsertAfterSuccessfulLaunch(
                         sourceKey: parsed.originalArgument,
                         displayPath: saved,
@@ -234,8 +234,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     )
                 }
             } else if Self.looksLikeHttpOrHttps(parsed.originalArgument) {
-                let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
-                let displayURL = FsClientShortcutsStore.normalizeShortcutTarget(parsed.originalArgument)
+                let saved = try AppPaths.saveImportedDefinitionJson(parsed.jsonData)
+                let displayURL = RegisteredApplicationsStore.normalizeShortcutTarget(parsed.originalArgument)
                 store.upsertAfterSuccessfulLaunch(
                     sourceKey: parsed.originalArgument,
                     displayPath: displayURL,
@@ -243,7 +243,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     defaultDisplayName: name
                 )
             } else {
-                let saved = try AppPaths.saveImportedFsClientJson(parsed.jsonData)
+                let saved = try AppPaths.saveImportedDefinitionJson(parsed.jsonData)
                 store.upsertAfterSuccessfulLaunch(
                     sourceKey: parsed.originalArgument,
                     displayPath: parsed.originalArgument.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -253,11 +253,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         } catch {
             fputs(
-                "FSClientLauncher: .fsclient konnte nicht unter ImportedFsClients gespeichert werden: \(error.localizedDescription)\n",
+                "TradeERPLauncher: .fsclient konnte nicht unter ImportedLauncherDefinitions gespeichert werden: \(error.localizedDescription)\n",
                 stderr
             )
             if Self.looksLikeHttpOrHttps(parsed.originalArgument) {
-                let displayURL = FsClientShortcutsStore.normalizeShortcutTarget(parsed.originalArgument)
+                let displayURL = RegisteredApplicationsStore.normalizeShortcutTarget(parsed.originalArgument)
                 store.upsertAfterSuccessfulLaunch(
                     sourceKey: parsed.originalArgument,
                     displayPath: displayURL,
@@ -274,7 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         MenuBarExtraController.shared.installIfNeeded()
     }
 
-    func runLaunchCoordinator(parsed: ParsedFsClientLaunch) async throws {
+    func runLaunchCoordinator(parsed: ParsedLaunchInput) async throws {
         let settings = LauncherSettings.load()
         if settings.DisplayConsole {
             await MainActor.run {
@@ -282,7 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         try await LaunchCoordinator.run(
-            launch: parsed.client,
+            launch: parsed.parameters,
             settings: settings,
             log: { line in
                 if isatty(STDOUT_FILENO) != 0 {
@@ -296,7 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             versionContinue: { required, installed in
                 await MainActor.run {
                     let alert = NSAlert()
-                    alert.messageText = "FS Client Launcher aktualisieren?"
+                    alert.messageText = "enventa Trade ERP Launcher aktualisieren?"
                     alert.informativeText =
                         "Der Broker verlangt mindestens Version \(required). Installiert ist \(installed).\n\nMit alter Version fortfahren?"
                     alert.alertStyle = .warning
@@ -318,7 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             JavaProcessOutputWindow.shared.append("\n—— Fehler: \(error.localizedDescription) ——\n")
         }
         let alert = NSAlert()
-        alert.messageText = "FS Client Launcher"
+        alert.messageText = "enventa Trade ERP Launcher"
         alert.informativeText = error.localizedDescription
         alert.alertStyle = .critical
         alert.runModal()
@@ -327,7 +327,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 }
 
 private struct ConfigRootView: View {
-    @EnvironmentObject private var shortcutsStore: FsClientShortcutsStore
+    @EnvironmentObject private var shortcutsStore: RegisteredApplicationsStore
     @Environment(\.scenePhase) private var scenePhase
     @State private var settings = LauncherSettings.load()
     @State private var javaVmJoined = ""
@@ -351,7 +351,7 @@ private struct ConfigRootView: View {
                     .tabItem {
                         Label("JVM-Argumente", systemImage: "doc.plaintext")
                     }
-                FsClientShortcutsSettingsView(store: shortcutsStore)
+                RegisteredApplicationsSettingsView(store: shortcutsStore)
                     .tabItem {
                         Label("Anwendungen", systemImage: "square.grid.2x2")
                     }
@@ -489,7 +489,7 @@ private struct ConfigRootView: View {
                     Text(AppPaths.launcherConfigURL.path).textSelection(.enabled)
                 }
                 LabeledContent("Menüleiste / Anwendungen") {
-                    Text(AppPaths.fsClientShortcutsURL.path).textSelection(.enabled)
+                    Text(AppPaths.registeredApplicationsMenuJSONURL.path).textSelection(.enabled)
                 }
                 LabeledContent("Logdateien") {
                     Text(AppPaths.logFilesDirectory.path).textSelection(.enabled)

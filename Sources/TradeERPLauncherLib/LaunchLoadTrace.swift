@@ -4,7 +4,7 @@ import Foundation
 /// Diagnose: **stderr** (kurz, synchron) + `AppPaths.logFilesDirectory/launcher-load-trace.log` (asynchron).
 /// Wichtig: kein `DispatchQueue.sync` + `FileManager` vom **MainThread** (z. B. Menü-Rebuild) — das kann mit Main-Queue-Rückrufen **deadlocken** und die App beenden lassen.
 enum LaunchLoadTrace {
-    private static let fileQueue = DispatchQueue(label: "de.frameworksystems.fscl.launchloadtrace.file", qos: .utility)
+    private static let fileQueue = DispatchQueue(label: "de.bizolution.trade-erp-launcher.launchloadtrace.file", qos: .utility)
 
     static func preview(_ s: String, max: Int = 280) -> String {
         let t = s.replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: "\n", with: "\\n")

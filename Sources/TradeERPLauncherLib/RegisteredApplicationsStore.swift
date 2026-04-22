@@ -2,94 +2,107 @@ import Darwin
 import Foundation
 
 extension Notification.Name {
-    static let fsclShortcutsChanged = Notification.Name("de.frameworksystems.fscl.shortcutsChanged")
+    /// Wird nach dem Speichern von `registered-applications-menu.json` gesendet (Menüleiste neu laden).
+    static let registeredApplicationsMenuDidChange = Notification.Name("de.bizolution.trade-erp-launcher.registeredApplicationsMenuDidChange")
 }
 
 /// Ein gespeicherter Eintrag für die Menüleiste / Einstellungen.
-struct FsClientShortcutRecord: Codable, Identifiable, Equatable, Hashable {
+struct RegisteredApplicationRecord: Codable, Identifiable, Equatable, Hashable {
     var id: UUID
     /// Anzeige & logische Quelle: **http(s)-URL** oder lokaler Pfad zur `.fsclient`-Datei (wie vom Nutzer erwartet).
     var path: String
-    /// Optional: unter `ImportedFsClients` gespeicherte Kopie — beim **Start** nur für **nicht-http(s)**-Kürzel genutzt; bei http(s) zählt immer `path` (erneuter Download).
+    /// Optional: unter `ImportedLauncherDefinitions` gespeicherte Kopie — beim **Start** nur für **nicht-http(s)**-Kürzel genutzt; bei http(s) zählt immer `path` (erneuter Download).
     var importedFilePath: String?
     var displayName: String
 
     /// Argument für `LaunchConfiguration.load`: Bei **http(s)-Kürzeln** immer die gespeicherte URL (erneuter Download) — eine alte `importedFilePath`-Kopie darf den Start nicht kapern. Sonst: Import-Datei, falls lesbar, sonst `path`.
     var launchSourceForRunner: String {
-        let norm = FsClientShortcutsStore.normalizeShortcutTarget(path)
+        let norm = RegisteredApplicationsStore.normalizeShortcutTarget(path)
         let nl = norm.lowercased()
         if nl.hasPrefix("http://") || nl.hasPrefix("https://") {
             return norm
         }
-        if let imp = importedFilePath?.trimmingCharacters(in: .whitespacesAndNewlines), !imp.isEmpty,
-           FileManager.default.isReadableFile(atPath: imp) {
-            return (imp as NSString).standardizingPath
+        if let imp = importedFilePath?.trimmingCharacters(in: .whitespacesAndNewlines), !imp.isEmpty {
+            let std = (imp as NSString).standardizingPath
+            let rewritten = AppPaths.rewriteLegacyUserDataPath(std)
+            if FileManager.default.isReadableFile(atPath: rewritten) {
+                return rewritten
+            }
+            if FileManager.default.isReadableFile(atPath: std) {
+                return std
+            }
         }
         return norm
     }
 }
 
-/// Persistiert in `menu-fsclients.json`.
-struct FsClientShortcutsFile: Codable, Equatable {
+/// Persistiert in `registered-applications-menu.json`.
+struct RegisteredApplicationsFile: Codable, Equatable {
     /// Menüleisten-Agent ist Standard (ab erstem Start); Datei wird beim ersten Launch angelegt.
     var menuBarExtraEnabled: Bool = true
-    var shortcuts: [FsClientShortcutRecord] = []
+    var shortcuts: [RegisteredApplicationRecord] = []
 }
 
 @MainActor
-final class FsClientShortcutsStore: ObservableObject {
-    static let shared = FsClientShortcutsStore()
+final class RegisteredApplicationsStore: ObservableObject {
+    static let shared = RegisteredApplicationsStore()
 
-    @Published private(set) var file: FsClientShortcutsFile = FsClientShortcutsFile()
+    @Published private(set) var file: RegisteredApplicationsFile = RegisteredApplicationsFile()
 
     private init() {}
 
     /// Erster Start / Installation: Datei anlegen oder laden; `menuBarExtraEnabled` immer auf `true` migrieren.
     func bootstrapTrayPersistenceAtLaunch() {
-        let url = AppPaths.fsClientShortcutsURL
+        let url = AppPaths.registeredApplicationsMenuJSONURL
         let fm = FileManager.default
         do {
             try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         } catch {
-            fputs("FSClientLauncher: App-Support-Verzeichnis: \(error.localizedDescription)\n", stderr)
+            fputs("TradeERPLauncher: App-Support-Verzeichnis: \(error.localizedDescription)\n", stderr)
         }
 
         if !fm.fileExists(atPath: url.path) {
-            file = FsClientShortcutsFile(menuBarExtraEnabled: true, shortcuts: [])
+            file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
             saveToDisk()
             return
         }
         guard let data = try? Data(contentsOf: url) else {
-            file = FsClientShortcutsFile(menuBarExtraEnabled: true, shortcuts: [])
+            file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
             saveToDisk()
             return
         }
-        guard var decoded = try? JSONDecoder().decode(FsClientShortcutsFile.self, from: data) else {
-            file = FsClientShortcutsFile(menuBarExtraEnabled: true, shortcuts: [])
+        guard var decoded = try? JSONDecoder().decode(RegisteredApplicationsFile.self, from: data) else {
+            file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
             saveToDisk()
             return
         }
+        var changed = Self.applyLegacyPathRewrites(to: &decoded)
         if !decoded.menuBarExtraEnabled {
             decoded.menuBarExtraEnabled = true
-            file = decoded
+            changed = true
+        }
+        file = decoded
+        if changed {
             saveToDisk()
-        } else {
-            file = decoded
         }
     }
 
     func loadFromDisk() {
-        let url = AppPaths.fsClientShortcutsURL
+        let url = AppPaths.registeredApplicationsMenuJSONURL
         guard let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode(FsClientShortcutsFile.self, from: data) else {
-            file = FsClientShortcutsFile(menuBarExtraEnabled: true, shortcuts: [])
+              var decoded = try? JSONDecoder().decode(RegisteredApplicationsFile.self, from: data) else {
+            file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
             return
         }
+        let changed = Self.applyLegacyPathRewrites(to: &decoded)
         file = decoded
+        if changed {
+            saveToDisk()
+        }
     }
 
     func saveToDisk() {
-        let url = AppPaths.fsClientShortcutsURL
+        let url = AppPaths.registeredApplicationsMenuJSONURL
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(file)
@@ -99,9 +112,9 @@ final class FsClientShortcutsStore: ObservableObject {
                 try? FileManager.default.removeItem(at: url)
             }
             try FileManager.default.moveItem(at: tmp, to: url)
-            NotificationCenter.default.post(name: .fsclShortcutsChanged, object: nil)
+            NotificationCenter.default.post(name: .registeredApplicationsMenuDidChange, object: nil)
         } catch {
-            fputs("FSClientLauncher: menu-fsclients.json konnte nicht gespeichert werden: \(error.localizedDescription)\n", stderr)
+            fputs("TradeERPLauncher: registered-applications-menu.json konnte nicht gespeichert werden: \(error.localizedDescription)\n", stderr)
         }
     }
 
@@ -119,7 +132,7 @@ final class FsClientShortcutsStore: ObservableObject {
     }
 
     /// Liest `title` aus einer lokalen `.fsclient`-Datei. Bei URL in `raw` optional `backingFile` (Import-Kopie).
-    nonisolated static func readFsClientTitleIfPresent(fromShortcutTarget raw: String, backingFile: String? = nil) -> String? {
+    nonisolated static func readDefinitionTitleIfPresent(fromShortcutTarget raw: String, backingFile: String? = nil) -> String? {
         let candidates: [String] = {
             var list: [String] = []
             if let b = backingFile?.trimmingCharacters(in: .whitespacesAndNewlines), !b.isEmpty {
@@ -135,7 +148,7 @@ final class FsClientShortcutsStore: ObservableObject {
             guard p.lowercased().hasSuffix(".fsclient"), FileManager.default.isReadableFile(atPath: p) else { continue }
             guard let data = try? Data(contentsOf: URL(fileURLWithPath: p, isDirectory: false)),
                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let title = obj[ApiFsClientKeys.title] as? String
+                  let title = obj[LaunchParameterKey.title] as? String
             else { continue }
             let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
             if !t.isEmpty { return t }
@@ -149,13 +162,13 @@ final class FsClientShortcutsStore: ObservableObject {
         guard !t.isEmpty else { return false }
         let lower = t.lowercased()
         if lower.hasPrefix("http://") || lower.hasPrefix("https://") {
-            return remoteFsClientDefinitionApiURL(from: t) != nil
+            return remoteClientDefinitionApiURL(from: t) != nil
                 || jnlpRemoteAPIURL(from: t) != nil
-                || fsclientRemoteAPIURL(from: t) != nil
+                || remoteDefinitionDocumentURL(from: t) != nil
         }
         if lower.hasPrefix("fsclientlauncher:") {
-            if LaunchConfiguration.embeddedHttpURLFromFsClientLauncherJnlpBridge(t) != nil { return true }
-            return LaunchConfiguration.isParsableFsClientLauncherLaunchURI(t)
+            if LaunchConfiguration.embeddedHttpURLFromLauncherJnlpBridge(t) != nil { return true }
+            return LaunchConfiguration.isParsableLauncherLaunchURI(t)
         }
         return lower.hasSuffix(".fsclient")
     }
@@ -203,7 +216,7 @@ final class FsClientShortcutsStore: ObservableObject {
             f.shortcuts[idx].displayName = defaultDisplayName
         } else {
             f.shortcuts.append(
-                FsClientShortcutRecord(id: UUID(), path: display, importedFilePath: importStd, displayName: defaultDisplayName)
+                RegisteredApplicationRecord(id: UUID(), path: display, importedFilePath: importStd, displayName: defaultDisplayName)
             )
         }
         file = f
@@ -245,22 +258,42 @@ final class FsClientShortcutsStore: ObservableObject {
             return false
         }
         var f = file
-        f.shortcuts.append(FsClientShortcutRecord(id: UUID(), path: norm, importedFilePath: nil, displayName: displayName))
+        f.shortcuts.append(RegisteredApplicationRecord(id: UUID(), path: norm, importedFilePath: nil, displayName: displayName))
         file = f
         saveToDisk()
         return true
     }
 
-    /// Entfernt nur Dateien unter unserem `ImportedFsClients`-Verzeichnis.
+    /// Entfernt nur Dateien unter unserem Import-Verzeichnis (inkl. erkanntem Legacy-Pfad nach Rewrite).
     nonisolated private static func deleteImportedFileIfOwned(_ path: String?) {
         guard let raw = path?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return }
-        let std = (raw as NSString).standardizingPath
-        let root = AppPaths.importedFsClientsDirectory.path
+        let std = AppPaths.rewriteLegacyUserDataPath((raw as NSString).standardizingPath)
+        let root = AppPaths.importedApplicationDefinitionsDirectory.path
         guard std.hasPrefix(root + "/") || std == root else { return }
         try? FileManager.default.removeItem(atPath: std)
     }
 
-    func replaceAllShortcuts(_ list: [FsClientShortcutRecord]) {
+    @discardableResult
+    private static func applyLegacyPathRewrites(to file: inout RegisteredApplicationsFile) -> Bool {
+        var changed = false
+        for i in file.shortcuts.indices {
+            let newPath = AppPaths.rewriteLegacyUserDataPath(file.shortcuts[i].path)
+            if newPath != file.shortcuts[i].path {
+                file.shortcuts[i].path = newPath
+                changed = true
+            }
+            if let imp = file.shortcuts[i].importedFilePath {
+                let newI = AppPaths.rewriteLegacyUserDataPath(imp)
+                if newI != imp {
+                    file.shortcuts[i].importedFilePath = newI
+                    changed = true
+                }
+            }
+        }
+        return changed
+    }
+
+    func replaceAllShortcuts(_ list: [RegisteredApplicationRecord]) {
         var f = file
         f.shortcuts = list
         file = f
