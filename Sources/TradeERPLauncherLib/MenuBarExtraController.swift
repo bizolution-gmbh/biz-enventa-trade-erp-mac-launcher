@@ -84,7 +84,12 @@ final class MenuBarExtraController: NSObject {
             let mi = NSMenuItem(title: rec.displayName, action: #selector(openRegisteredApplication(_:)), keyEquivalent: "")
             mi.target = self
             mi.representedObject = rec.launchSourceForRunner as NSString
-            mi.image = javaAppMenuIcon
+            if let h = rec.iconContentHash,
+               let custom = RegisteredApplicationIconCache.nsImage(contentHashHex: h, pixelSide: 16) {
+                mi.image = custom
+            } else {
+                mi.image = javaAppMenuIcon
+            }
             menu.addItem(mi)
         }
 

@@ -465,6 +465,61 @@ enum LaunchConfiguration {
         return .fsclientDefinitionDownloadFailed(url: url.absoluteString, reason: reason)
     }
 
+    // MARK: - Broker-Stamm für registrierte Anwendungen (Icon.png)
+
+    /// Liefert die normalisierte Broker-Basis-URL (`http(s)://…/Anwendung/`) für `Icon.png`, sofern aus Kürzel ableitbar.
+    static func brokerBaseStringForApplicationIcon(shortcutTarget raw: String, backingFilePath: String?) -> String? {
+        let ws = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = stripLeadingGarbageBeforeHTTPScheme(ws)
+        if let embeddedTop = embeddedHttpURLFromLauncherJnlpBridge(trimmed) {
+            return brokerBaseStringForApplicationIcon(shortcutTarget: embeddedTop, backingFilePath: nil)
+        }
+        let t0 = normalizeLauncherRedirectLocation(trimmed)
+        if let r = t0.range(of: "fsclientlauncher:", options: .caseInsensitive) {
+            let t = "fsclientlauncher:" + String(t0[r.upperBound...])
+            if let inner = embeddedHttpURLFromLauncherJnlpBridge(t) {
+                return brokerBaseStringForApplicationIcon(shortcutTarget: inner, backingFilePath: nil)
+            }
+            var rest = String(t.dropFirst("fsclientlauncher:".count))
+            if rest.hasPrefix("//") {
+                rest = String(rest.dropFirst(2))
+            }
+            if let qIdx = rest.firstIndex(of: "?") {
+                let pathPart = String(rest[..<qIdx]).trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+                if pathPart == "jnlp" { return nil }
+            }
+            guard let params = try? parseLauncherLaunchURI(t) else { return nil }
+            let b = params.broker.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !b.isEmpty else { return nil }
+            return try? BrokerFetcher.normalizedBrokerURL(b).absoluteString
+        }
+        let tl = trimmed.lowercased()
+        if tl.hasPrefix("http://") || tl.hasPrefix("https://") {
+            let u = resolveHttpURLFromUserString(trimmed) ?? httpRemoteAPIURL(from: trimmed) ?? parseLenientHTTPURL(trimmed)
+            guard let url = u else { return nil }
+            return try? BrokerFetcher.normalizedBrokerURL(url.absoluteString).absoluteString
+        }
+        var paths: [String] = []
+        if let b = backingFilePath?.trimmingCharacters(in: .whitespacesAndNewlines), !b.isEmpty {
+            paths.append((b as NSString).standardizingPath)
+        }
+        let norm = RegisteredApplicationsStore.normalizeShortcutTarget(raw)
+        if !norm.lowercased().hasPrefix("http://"), !norm.lowercased().hasPrefix("https://") {
+            paths.append((norm as NSString).standardizingPath)
+        }
+        for p in paths {
+            guard p.lowercased().hasSuffix(".fsclient"), FileManager.default.isReadableFile(atPath: p) else { continue }
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: p, isDirectory: false)),
+                  let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let broker = obj[LaunchParameterKey.broker] as? String
+            else { continue }
+            let b = broker.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !b.isEmpty else { continue }
+            if let s = try? BrokerFetcher.normalizedBrokerURL(b).absoluteString { return s }
+        }
+        return nil
+    }
+
     // MARK: - Lokale Datei
 
     private static func resolveLocalFileURL(from trimmed: String) -> URL {

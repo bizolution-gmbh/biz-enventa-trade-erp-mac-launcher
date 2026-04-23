@@ -61,7 +61,15 @@ struct RegisteredApplicationsSettingsView: View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 8) {
                 Group {
-                    if let ns = LauncherBrandingImages.shortcutsTileIcon() {
+                    if let h = rec.iconContentHash,
+                       let ns = RegisteredApplicationIconCache.nsImage(contentHashHex: h, pixelSide: 40) {
+                        Image(nsImage: ns)
+                            .resizable()
+                            .interpolation(.high)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 40, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    } else if let ns = LauncherBrandingImages.shortcutsTileIcon() {
                         Image(nsImage: ns)
                             .resizable()
                             .interpolation(.high)

@@ -14,4 +14,13 @@ final class LaunchConfigurationBridgeTests: XCTestCase {
         let raw = "fsclientlauncher:launch?broker=https%3A%2F%2Fx"
         XCTAssertNil(LaunchConfiguration.embeddedHttpURLFromLauncherJnlpBridge(raw))
     }
+
+    func testBrokerBaseStringForApplicationIconFromLauncherUri() {
+        let uri =
+            "fsclientlauncher:launch?title=ENV-P-BIZ&broker=http%3A%2F%2Fsrv-enventa01.hq.bizolution.de%2FENV-P-BIZ%2F&theme=DefaultID&language=de&lookAndFeel=1&noDomainAuth=false"
+        let b = LaunchConfiguration.brokerBaseStringForApplicationIcon(shortcutTarget: uri, backingFilePath: nil)
+        XCTAssertNotNil(b)
+        XCTAssertTrue(b!.contains("srv-enventa01.hq.bizolution.de"))
+        XCTAssertTrue(b!.contains("ENV-P-BIZ"))
+    }
 }

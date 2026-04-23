@@ -14,6 +14,10 @@ struct RegisteredApplicationRecord: Codable, Identifiable, Equatable, Hashable {
     /// Optional: unter `ImportedLauncherDefinitions` gespeicherte Kopie — beim **Start** nur für **nicht-http(s)**-Kürzel genutzt; bei http(s) zählt immer `path` (erneuter Download).
     var importedFilePath: String?
     var displayName: String
+    /// SHA256 (hex) des heruntergeladenen `Icon.png`-Inhalts; Datei `…/RegisteredAppIcons/<hash>.png` (mehrere Apps können dasselbe Icon teilen).
+    ///
+    /// **Migration:** Fehlt der Schlüssel in älteren `registered-applications-menu.json`, bleibt der Wert `nil` — `enqueueMissingBrokerIconFetches()` lädt Icons beim nächsten Start nach.
+    var iconContentHash: String?
 
     /// Argument für `LaunchConfiguration.load`: Bei **http(s)-Kürzeln** immer die gespeicherte URL (erneuter Download) — eine alte `importedFilePath`-Kopie darf den Start nicht kapern. Sonst: Import-Datei, falls lesbar, sonst `path`.
     var launchSourceForRunner: String {
@@ -85,6 +89,7 @@ final class RegisteredApplicationsStore: ObservableObject {
         if changed {
             saveToDisk()
         }
+        enqueueMissingBrokerIconFetches()
     }
 
     func loadFromDisk() {
@@ -99,6 +104,7 @@ final class RegisteredApplicationsStore: ObservableObject {
         if changed {
             saveToDisk()
         }
+        enqueueMissingBrokerIconFetches()
     }
 
     func saveToDisk() {
@@ -211,16 +217,37 @@ final class RegisteredApplicationsStore: ObservableObject {
             return false
         }
         if let idx {
+            let oldNorm = Self.normalizeShortcutTarget(f.shortcuts[idx].path)
+            let newNorm = Self.normalizeShortcutTarget(display)
+            if oldNorm != newNorm {
+                f.shortcuts[idx].iconContentHash = nil
+            }
             f.shortcuts[idx].path = display
             f.shortcuts[idx].importedFilePath = importStd
             f.shortcuts[idx].displayName = defaultDisplayName
+            let id = f.shortcuts[idx].id
+            file = f
+            saveToDisk()
+            if Self.recordNeedsBrokerIconFetch(f.shortcuts.first(where: { $0.id == id })) {
+                enqueueBrokerIconFetch(for: id)
+            }
         } else {
+            let newId = UUID()
             f.shortcuts.append(
-                RegisteredApplicationRecord(id: UUID(), path: display, importedFilePath: importStd, displayName: defaultDisplayName)
+                RegisteredApplicationRecord(
+                    id: newId,
+                    path: display,
+                    importedFilePath: importStd,
+                    displayName: defaultDisplayName,
+                    iconContentHash: nil
+                )
             )
+            file = f
+            saveToDisk()
+            if Self.recordNeedsBrokerIconFetch(f.shortcuts.first(where: { $0.id == newId })) {
+                enqueueBrokerIconFetch(for: newId)
+            }
         }
-        file = f
-        saveToDisk()
     }
 
     func updateRecord(id: UUID, displayName: String, path: String? = nil) {
@@ -228,16 +255,22 @@ final class RegisteredApplicationsStore: ObservableObject {
         guard let idx = f.shortcuts.firstIndex(where: { $0.id == id }) else { return }
         let old = f.shortcuts[idx]
         f.shortcuts[idx].displayName = displayName
+        var pathChanged = false
         if let path {
             let norm = Self.normalizeShortcutTarget(path)
             if norm != Self.normalizeShortcutTarget(old.path) {
+                pathChanged = true
                 Self.deleteImportedFileIfOwned(old.importedFilePath)
                 f.shortcuts[idx].importedFilePath = nil
+                f.shortcuts[idx].iconContentHash = nil
             }
             f.shortcuts[idx].path = norm
         }
         file = f
         saveToDisk()
+        if pathChanged, Self.recordNeedsBrokerIconFetch(f.shortcuts.first(where: { $0.id == id })) {
+            enqueueBrokerIconFetch(for: id)
+        }
     }
 
     func deleteRecord(id: UUID) {
@@ -257,10 +290,16 @@ final class RegisteredApplicationsStore: ObservableObject {
         if file.shortcuts.contains(where: { Self.normalizeShortcutTarget($0.path) == norm }) {
             return false
         }
+        let newId = UUID()
         var f = file
-        f.shortcuts.append(RegisteredApplicationRecord(id: UUID(), path: norm, importedFilePath: nil, displayName: displayName))
+        f.shortcuts.append(
+            RegisteredApplicationRecord(id: newId, path: norm, importedFilePath: nil, displayName: displayName, iconContentHash: nil)
+        )
         file = f
         saveToDisk()
+        if Self.recordNeedsBrokerIconFetch(f.shortcuts.first(where: { $0.id == newId })) {
+            enqueueBrokerIconFetch(for: newId)
+        }
         return true
     }
 
@@ -296,6 +335,52 @@ final class RegisteredApplicationsStore: ObservableObject {
     func replaceAllShortcuts(_ list: [RegisteredApplicationRecord]) {
         var f = file
         f.shortcuts = list
+        file = f
+        saveToDisk()
+        enqueueMissingBrokerIconFetches()
+    }
+
+    private func enqueueMissingBrokerIconFetches() {
+        for rec in file.shortcuts where Self.recordNeedsBrokerIconFetch(rec) {
+            enqueueBrokerIconFetch(for: rec.id)
+        }
+    }
+
+    /// `true`, wenn ein Broker-Stamm ermittelbar ist und noch kein gültiges Icon im Cache liegt.
+    private static func recordNeedsBrokerIconFetch(_ rec: RegisteredApplicationRecord?) -> Bool {
+        guard let rec else { return false }
+        guard LaunchConfiguration.brokerBaseStringForApplicationIcon(
+            shortcutTarget: rec.path,
+            backingFilePath: rec.importedFilePath
+        ) != nil else {
+            return false
+        }
+        if let h = rec.iconContentHash, !h.isEmpty,
+           FileManager.default.isReadableFile(atPath: RegisteredApplicationIconCache.fileURL(contentHashHex: h).path) {
+            return false
+        }
+        return true
+    }
+
+    private func enqueueBrokerIconFetch(for recordId: UUID) {
+        Task { @MainActor in
+            await fetchBrokerIconForRegisteredApplication(recordId: recordId)
+        }
+    }
+
+    private func fetchBrokerIconForRegisteredApplication(recordId: UUID) async {
+        guard let rec = file.shortcuts.first(where: { $0.id == recordId }),
+              Self.recordNeedsBrokerIconFetch(rec) else { return }
+        guard let brokerStr = LaunchConfiguration.brokerBaseStringForApplicationIcon(
+            shortcutTarget: rec.path,
+            backingFilePath: rec.importedFilePath
+        ) else { return }
+        guard let brokerURL = URL(string: brokerStr) else { return }
+        guard let hash = await RegisteredApplicationIconCache.downloadAndStorePngIfMissing(brokerRoot: brokerURL) else { return }
+        var f = file
+        guard let idx = f.shortcuts.firstIndex(where: { $0.id == recordId }) else { return }
+        if f.shortcuts[idx].iconContentHash == hash { return }
+        f.shortcuts[idx].iconContentHash = hash
         file = f
         saveToDisk()
     }

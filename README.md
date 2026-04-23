@@ -128,6 +128,8 @@ Die Datei muss dasselbe **JSON** enthalten wie unter Windows (Schlüssel wie `br
 
 - **URL-Schema** (wie unter Windows): Links im Stil `fsclientlauncher:launch?broker=…` öffnen die App mit dem passenden Handler.
 
+Registrierte Anwendungen: optional wird unter dem **Broker-Stamm** (aus `broker` bzw. der Web-Definitions-URL) **`Icon.png`** geladen, als **SHA256-Dateiname** unter `~/Library/Application Support/bizolution/enventa Trade ERP Launcher/RegisteredAppIcons/` gespeichert (gleiche Grafik = eine Datei) und in **Menüleiste** sowie **Einstellungen › Anwendungen** angezeigt. **Bestehende Konfigurationen:** ältere `registered-applications-menu.json` ohne Feld `iconContentHash` bleiben gültig (`nil`); der Launcher versucht die Icons beim nächsten Start automatisch nachzuladen — kein manuelles Editieren der JSON nötig.
+
 ## Einstellungen › Anwendungen (technisch)
 
 Die Oberfläche nutzt kurze Alltagstexte; hier die gültigen Kürzel laut Code:
