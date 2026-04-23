@@ -67,13 +67,22 @@ if [[ -d "${BUNDLE_JDK_ROOT}/jdk21" ]]; then
   echo "==> Kopiere eingebettetes JDK 21 aus ${BUNDLE_JDK_ROOT}/jdk21"
   ditto "${BUNDLE_JDK_ROOT}/jdk21" "${DEST}/Contents/Resources/jdk21"
 fi
-if [[ -d "${BUNDLE_JDK_ROOT}/jre8" ]]; then
-  echo "==> Kopiere eingebettetes JRE 8 aus ${BUNDLE_JDK_ROOT}/jre8"
-  ditto "${BUNDLE_JDK_ROOT}/jre8" "${DEST}/Contents/Resources/jre8"
+# Java 8: Standard = nicht ins Bundle (Erststart-Download nach Application Support).
+# Nur kopieren, wenn BUNDLE_JRE8 gesetzt ist — siehe Scripts/JDK_BUNDLE.md.
+if [[ -n "${BUNDLE_JRE8:-}" ]]; then
+  if [[ -d "${BUNDLE_JDK_ROOT}/jre8" ]]; then
+    echo "==> Kopiere eingebettetes JRE 8 aus ${BUNDLE_JDK_ROOT}/jre8 (BUNDLE_JRE8 ist gesetzt)"
+    ditto "${BUNDLE_JDK_ROOT}/jre8" "${DEST}/Contents/Resources/jre8"
+  else
+    echo "Warnung: BUNDLE_JRE8 ist gesetzt, aber ${BUNDLE_JDK_ROOT}/jre8 fehlt — nichts kopiert." >&2
+  fi
+elif [[ -d "${BUNDLE_JDK_ROOT}/jre8" ]]; then
+  echo "==> JRE 8: ${BUNDLE_JDK_ROOT}/jre8 wird nicht ins Bundle kopiert (nur mit BUNDLE_JRE8=1). Erststart-Download oder manuell nach Contents/Resources/jre8/."
 fi
 
 echo "Fertig: ${DEST}"
 echo "JDKs: optional unter ${BUNDLE_JDK_ROOT}/ (jdk11, jdk21, jre8) — siehe Scripts/JDK_BUNDLE.md"
+echo "  JRE 8 ins .app aufnehmen: BUNDLE_JRE8=1 ./Scripts/build_app.sh"
 echo "  oder manuell unter Contents/Resources/ ablegen bzw. FSCL_JDK11, FSCL_JDK21, FSCL_JRE8 setzen."
 
 echo "==> DMG (read-only, UDZO)"

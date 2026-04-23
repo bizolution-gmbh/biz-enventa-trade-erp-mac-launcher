@@ -22,6 +22,7 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources/Icon.png"),
+                .copy("Resources/Java8RuntimeCatalog.json"),
             ]
         ),
         .executableTarget(

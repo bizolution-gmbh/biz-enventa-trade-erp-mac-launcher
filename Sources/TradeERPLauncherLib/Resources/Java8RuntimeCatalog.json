@@ -1,0 +1,23 @@
+{
+  "catalogVersion": 1,
+  "entries": [
+    {
+      "id": "zulu8-fx-builtin-aarch64",
+      "label": "Azul Zulu 8 + JavaFX (Apple Silicon)",
+      "architecture": "arm64",
+      "downloadUrl": "https://cdn.azul.com/zulu/bin/zulu8.92.0.21-ca-fx-jdk8.0.482-macosx_aarch64.tar.gz",
+      "hashType": "sha256",
+      "expectedHash": "c2b5df363f64b9e47d76d8cbb3fafb2b339eaab194ecbc912cd353ed531422b9",
+      "defaultActive": true
+    },
+    {
+      "id": "zulu8-fx-builtin-x86_64",
+      "label": "Azul Zulu 8 + JavaFX (Intel)",
+      "architecture": "x86_64",
+      "downloadUrl": "https://cdn.azul.com/zulu/bin/zulu8.92.0.21-ca-fx-jdk8.0.482-macosx_x64.tar.gz",
+      "hashType": "sha256",
+      "expectedHash": "eac970e78531ee14c46f7c91fc89c476a5036bddeabe9b662763d6d15ce3bf63",
+      "defaultActive": true
+    }
+  ]
+}

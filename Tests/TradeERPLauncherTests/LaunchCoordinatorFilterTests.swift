@@ -42,6 +42,17 @@ final class LaunchCoordinatorFilterTests: XCTestCase {
         XCTAssertEqual(out.count, 1)
         XCTAssertEqual(out.first?.Architecture?.lowercased(), "aarch64")
     }
+
+    /// JVM-`os.arch` wird zu „amd64“ normalisiert; Broker-JARs oft „x86_64“.
+    func testFilterByArchitectureAmd64X86_64Alias() {
+        let jars = [
+            jar(os: nil, arch: "x86_64"),
+            jar(os: nil, arch: "aarch64"),
+        ]
+        let out = LaunchCoordinator.filterOsArchitecture(jarFiles: jars, jvmArch: "amd64")
+        XCTAssertEqual(out.count, 1)
+        XCTAssertEqual(out.first?.Architecture?.lowercased(), "x86_64")
+    }
 }
 
 // MARK: - HTTPOutboundRedirectPolicy (gleiches Modul wie oben — vermeidet XCTest-Modulauflösung in separater Datei bei manchen Toolchains)

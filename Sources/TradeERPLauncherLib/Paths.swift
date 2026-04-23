@@ -32,6 +32,12 @@ enum AppPaths {
         appDataDirectory.appendingPathComponent("launcherconfig.json", isDirectory: false)
     }
 
+    /// Heruntergeladene **Java-8**-Laufzeit (Azul Zulu + JavaFX), siehe `ZuluJava8FxRuntimeDownloader`.
+    /// `JavaRuntimeResolver` prüft dieses Verzeichnis nach dem App-Bundle-`jre8/`.
+    static var downloadedJre8Directory: URL {
+        appDataDirectory.appendingPathComponent("runtimes/jre8", isDirectory: true)
+    }
+
     /// Gespeicherte Kürzel (Tray/Einstellungen) und Schalter für das Menüleisten-Icon.
     static var registeredApplicationsMenuJSONURL: URL {
         appDataDirectory.appendingPathComponent("registered-applications-menu.json", isDirectory: false)

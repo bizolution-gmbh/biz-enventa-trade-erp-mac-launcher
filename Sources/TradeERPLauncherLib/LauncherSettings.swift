@@ -40,6 +40,8 @@ struct LauncherSettings: Codable, Equatable {
     var Java21VmArguments: [String] = []
     var TraceLevel: TraceLevel = .Error
     var ProxyMode: ProxyMode = .Direct
+    /// Download-Quellen für die mitgelieferte bzw. eigene Java-8-Laufzeit (Zulu + JavaFX); optional, Standard wie `Java8RuntimePreferences.empty`.
+    var Java8RuntimePreferences: Java8RuntimePreferences?
 
     private static let ioQueue = DispatchQueue(label: "de.bizolution.trade-erp-launcher.settings")
 

@@ -41,6 +41,10 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<!-- macOS „Lokales Netzwerk“ / lokale Netzwerkdatenschutz: Broker- und JAR-Downloads zu Firmen-Servern,
+	     die oft auf interne IP-Adressen auflösen (VPN). Kein Bluetooth- oder Bonjour-Scan — nur TCP/HTTP(s) wie im Browser. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Der Launcher lädt Anwendungsdaten (Broker-JSON, JAR-Dateien) von der konfigurierten Server-Adresse. Liegt der Server im Firmennetz, wertet macOS den Zugriff als lokales Netzwerk; es werden keine Geräte in der Umgebung gesucht.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

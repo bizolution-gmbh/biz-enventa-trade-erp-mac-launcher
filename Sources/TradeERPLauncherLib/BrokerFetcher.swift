@@ -20,7 +20,7 @@ enum BrokerFetcher {
     }
 
     private static let outboundRedirectDelegate = OutboundRedirectDelegate()
-    /// Eine Session für Broker-, JAR- und Splash-Downloads: gleiche Proxy-/Ephemeral-Konfiguration und **strikte HTTP-Redirect-Policy**.
+    /// Eine Session für Broker-, JAR- und Splash-Downloads: gemeinsame Konfiguration (siehe `urlSessionConfiguration`) und **strikte HTTP-Redirect-Policy**.
     private static let outboundURLSession: URLSession = {
         URLSession(configuration: urlSessionConfiguration(), delegate: outboundRedirectDelegate, delegateQueue: nil)
     }()
@@ -94,10 +94,17 @@ enum BrokerFetcher {
 
     /// Manche `.fsclient`-Dateien tragen im Feld `broker` die **komplette** Definitions-URL (`…/api/fsclient?…` / `…/api/jnlp?…`).
     /// Für `…/api/jardownload` ist aber der **Anwendungsstamm** nötig (alles vor `/api/fsclient` bzw. `/api/jnlp`) — sonst entsteht z. B. `…/api/fsclient/api/jardownload` → HTTP 404.
+    ///
+    /// **ASP.NET Web Forms** nutzt oft `…/api/fsclient.ashx` / `…/api/jnlp.ashx`. Dann würde ein kürzeres Muster `/api/fsclient` nur bis vor `.ashx` matchen, der Rest wäre `.ashx` → fälschlich **kein** Strip → kaputte URLs wie `…/fsclient.ashx/api/jardownload`. Deshalb **längere Marker zuerst**.
     private static func brokerRootStrippingApiDefinitionURL(_ url: URL) -> URL {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         let path = components.path.removingPercentEncoding ?? components.path
-        let markers = ["/api/fsclient", "/api/jnlp"]
+        let markers = [
+            "/api/fsclient.ashx",
+            "/api/jnlp.ashx",
+            "/api/fsclient",
+            "/api/jnlp",
+        ]
         for m in markers {
             guard let r = path.range(of: m, options: .caseInsensitive) else { continue }
             let tail = path[r.upperBound...]
@@ -120,7 +127,11 @@ enum BrokerFetcher {
     private static func dataRequest(url: URL) async throws -> (Data, URLResponse) {
         var req = URLRequest(url: url)
         req.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
-        return try await outboundURLSession.data(for: req)
+        do {
+            return try await outboundURLSession.data(for: req)
+        } catch {
+            throw LaunchError.brokerDownload(error)
+        }
     }
 
     /// Gemeinsame `URLSession` mit Redirect-Filter — für JAR-, Splash- und ggf. weitere Broker-HTTP(s)-Downloads.
@@ -133,6 +144,8 @@ enum BrokerFetcher {
         let config = URLSessionConfiguration.ephemeral
         config.allowsConstrainedNetworkAccess = true
         config.allowsExpensiveNetworkAccess = true
+        // `waitsForConnectivity = true` bei verweigerter „Lokales Netzwerk“-Freigabe (Firmen-Broker auf privater IP) kann
+        // bis zum Resource-Timeout hängen — schlechtere UX als schnelles Scheitern; siehe TN3179 / NSLocalNetworkUsageDescription.
         config.waitsForConnectivity = false
         // Kein connectionProxyDictionary: leeres Dictionary kann Verbindungen hinter Firmenproxy stören;
         // die JVM-Proxy-Steuerung bleibt über -Djava.net.useSystemProxies in LaunchCoordinator.

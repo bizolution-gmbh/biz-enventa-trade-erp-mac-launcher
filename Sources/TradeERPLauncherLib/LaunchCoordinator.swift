@@ -99,6 +99,8 @@ enum LaunchCoordinator {
             let a = arch.lowercased()
             if j == a { return true }
             if (a == "aarch64" && j == "arm64") || (a == "arm64" && j == "aarch64") { return true }
+            // Broker-Metadaten oft „x86_64“, JVM-`os.arch` wird zu „amd64“ normalisiert (`JavaRuntimeResolver.normalizedBrokerArchitecture`).
+            if (a == "amd64" && j == "x86_64") || (a == "x86_64" && j == "amd64") { return true }
             return false
         }
     }

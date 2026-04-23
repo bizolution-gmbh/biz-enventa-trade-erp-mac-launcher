@@ -18,21 +18,58 @@ Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Clie
 - **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/TradeERPLauncherLib/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
 - **Java-Dock & Kacheln:** `Sources/TradeERPLauncherLib/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
 
-## JDK / JRE mitliefern
+## JDK / JRE
 
-Unter **`enventa Trade ERP Launcher.app/Contents/Resources/`** erwartet der Launcher:
+Unter **`enventa Trade ERP Launcher.app/Contents/Resources/`** kann der Launcher **JDK 11/21** und optional **JRE 8** aus dem Bundle nutzen:
 
 | Verzeichnis | Inhalt |
 |-------------|--------|
 | `jdk11/` | z. B. entpacktes **Eclipse Temurin 11** für macOS (`*.jdk/Contents/Home`) |
 | `jdk21/` | Temurin 21 analog |
-| `jre8/` | optional Java 8 (JRE/JDK mit `bin/java`; für JavaFX auf Apple Silicon: **`./Scripts/download_zulu8_fx_jre.sh`**, siehe `Scripts/JDK_BUNDLE.md`) |
+| `jre8/` | optional mitgeliefertes Java 8 |
 
-**Automatisch beim Build:** Ordner `jdk11`, `jdk21`, `jre8` unter **`BundledJDKs/`** im Projektroot anlegen (von Git ignoriert); `Scripts/build_app.sh` kopiert sie per `ditto` ins Bundle. Anderer Pfad: Umgebungsvariable **`BUNDLE_JDK_ROOT`**. Lizenzhinweise: **`Scripts/JDK_BUNDLE.md`**.
+**Java 8 + JavaFX:** Viele übliche Java-8-JDKs (z. B. Eclipse Temurin) liefern **kein** JavaFX; der Launcher lädt deshalb bei Bedarf **Azul Zulu 8 mit JavaFX** (Apple Silicon oder Intel) nach Application Support `…/runtimes/jre8/`. Nach **Ersetzen der `.app`** ist ein früheres **nur-im-Bundle** liegendes `jre8/` nicht mehr verfügbar — siehe **`Scripts/JDK_BUNDLE.md`**. Lizenzen und Optionen (`FSCL_JRE8`, `BUNDLE_JRE8=1`) dort ebenfalls.
+
+**Automatisch beim Build:** Ordner `jdk11` und `jdk21` unter **`BundledJDKs/`** (von Git ignoriert) werden von `Scripts/build_app.sh` ins Bundle kopiert, sofern vorhanden. **`jre8/`** wird **nur** kopiert, wenn du explizit **`BUNDLE_JRE8=1`** setzt und `BundledJDKs/jre8/` existiert (sonst Java 8 per Erststart-Download). Anderer Pfad: **`BUNDLE_JDK_ROOT`**.
 
 Alternativ Umgebungsvariablen (wie im Original): **`FSCL_JDK11`**, **`FSCL_JDK21`**, **`FSCL_JRE8`** → jeweils **JAVA_HOME** (Ordner mit `bin/java`).
 
-In **Einstellungen › JVM-Argumente** erscheinen die **zusätzlichen** Felder für Java 8, 11 bzw. 21 nur, wenn die passende Laufzeit im App-Bundle oder per `FSCL_*` erkannt wird (nach App-Rückkehr in den Vordergrund oder beim Öffnen des Reiters erneut geprüft). Die **gemeinsamen** JVM-Argumente (alle Versionen) bleiben immer sichtbar.
+In **Einstellungen › JVM-Argumente** erscheinen die **zusätzlichen** Felder für Java 8, 11 bzw. 21 nur, wenn die passende Laufzeit erkannt wird (nach App-Rückkehr in den Vordergrund oder beim Öffnen des Reiters erneut geprüft). Die **gemeinsamen** JVM-Argumente (alle Versionen) bleiben immer sichtbar. Zusammenhang mit den Tabellen im Reiter **Java-Laufzeitumgebungen**: siehe unten *Java-Laufzeiten im Einstellungen-Fenster (Referenz)*.
+
+### Java-Laufzeiten im Einstellungen-Fenster (Referenz)
+
+Der Reiter **Java-Laufzeitumgebungen** enthält zwei **Tabellen** (gruppiertes Formular nach Apple HIG):
+
+1. **Vom Computer übernommene Ordner** — zeigt, welche Werte die Umgebungsvariablen **`FSCL_JRE8`**, **`FSCL_JDK11`** und **`FSCL_JDK21`** im **aktuellen Launcher-Prozess** haben (Auslesen über `ProcessInfo.processInfo.environment`; führende/abschließende Leerzeichen und Zeilenumbrüche im Wert werden entfernt). Jede Variable ist ein **JAVA_HOME** (Ordner mit lauffähigem **`bin/java`**; Symlinks und `access(…, X_OK)` werden wie in `JavaRuntimeResolver` berücksichtigt). Steht dort **„Kein eigener Ordner übernommen“**, enthält dieser Prozess die Variable nicht (typisch: Launcher lief noch und wurde nur erneut aktiviert, Start über **`open -a`** ohne `--env`, oder anderer Start ohne diese Umgebung).
+
+   **Sicherheit:** `FSCL_*` ist eine bewusste Administrator-Option: Der Launcher führt **`bin/java`** unter dem angegebenen Ordner aus, ohne zusätzliche Signatur- oder Herstellerprüfung. Nur vertrauenswürdige Pfade setzen; in den Einstellungen sind die Pfade einsehbar (ggf. interne Verzeichnisse).
+
+2. **Erkannte Installationen** — ob aus den übernommenen Pfaden, aus dem **App-Bundle** (`Contents/Resources/jre8` bzw. `jdk11` / `jdk21`) oder (nur Java 8) aus dem **unter Application Support heruntergeladenen** `runtimes/jre8/`-Layout ein nutzbares Java ermittelt wurde.
+
+**Spaltenbedeutung (UI → technisch):**
+
+| UI (Einstellungen) | Technisch |
+|--------------------|-----------|
+| Installationsordner | JAVA_HOME |
+| Startprogramm | `bin/java` (ggf. aufgelöster Symlink) |
+| Versionsinfo | erste Zeile von `java -version` (stderr/stdout) |
+
+**Priorität** wie beim Programmstart: zuerst `FSCL_*`, sonst eingebettete Ordner im Bundle, bei Java 8 zusätzlich der Download-Ordner unter Application Support.
+
+**Beispiel Terminal** (Launcher zuvor in der Menüleiste beenden), JAVA_HOME von Java 8 gesetzt:
+
+```bash
+FSCL_JRE8="$HOME/Library/Application Support/bizolution/enventa Trade ERP Launcher/runtimes/jre8/zulu8-fx-macos-aarch64.jdk/Contents/Home" \
+"/Applications/enventa Trade ERP Launcher.app/Contents/MacOS/TradeERPLauncher"
+```
+
+**Neue App-Instanz mit Variable**, ohne Shell-Umgebung des Elternprozesses:
+
+```bash
+open -n --env FSCL_JRE8=/pfad/zum/JAVA_HOME -a "enventa Trade ERP Launcher"
+```
+
+Weitere Bundle- und Lizenzoptionen: **`Scripts/JDK_BUNDLE.md`**.
 
 **Standard Java 8** (nur wenn `Java8VmArguments` in `launcherconfig.json` noch leer ist und JRE 8 erkannt wird — siehe `LauncherSettings.recommendedJava8VmArgumentsForMacOS`):
 
@@ -43,14 +80,6 @@ In **Einstellungen › JVM-Argumente** erscheinen die **zusätzlichen** Felder f
 -Dapple.awt.antialiasing=true
 -Dapple.awt.textantialiasing=true
 ```
-
-Hilfsskript (lädt Temurin 11/21 von Adoptium; Lizenz beachten):
-
-```bash
-./Scripts/download_jdks.sh aarch64 "/Pfad/zu/enventa Trade ERP Launcher.app/Contents/Resources"
-```
-
-**Java 8 + JavaFX (nur Apple Silicon / aarch64):** `./Scripts/download_zulu8_fx_jre.sh` legt Azul Zulu 8 JDK FX unter `BundledJDKs/jre8/` ab.
 
 ## Bauen
 
@@ -75,7 +104,7 @@ Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bu
 ## Installation
 
 1. **App bauen** (siehe oben): z. B. `./Scripts/build_app.sh` → Ergebnis: `dist/enventa Trade ERP Launcher.app`.
-2. **JDKs** entweder beim Build über `BundledJDKs/` mitliefern lassen oder unter `…/Contents/Resources/` (`jdk11/`, `jdk21/`, optional `jre8/`) legen bzw. `FSCL_JDK11` / `FSCL_JDK21` / `FSCL_JRE8` setzen.
+2. **JDKs** entweder beim Build über `BundledJDKs/` mitliefern lassen oder unter `…/Contents/Resources/` (`jdk11/`, `jdk21/`, optional `jre8/` nur mit **`BUNDLE_JRE8=1`**) legen bzw. `FSCL_JDK11` / `FSCL_JDK21` / `FSCL_JRE8` setzen.
 3. Die **`.app`** nach **`/Applications`** ziehen (oder wo du Programme ablegst).
 4. Beim **ersten Start** ggf. Rechtsklick → **„Öffnen“** wählen (Gatekeeper), falls die App nicht signiert/notarisiert ist.
 5. Optional: **Code-Signing / Notarisierung** für reibungslosen Start ohne Gatekeeper-Hinweis (Apple-Entwicklerkonto).
