@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Square viewBox like bizolution-mark-farbe-rgb.svg. White rim ~typ. Abstand Blau/Orange in der flachen Zweifarbig-Marke (stroke ca. 50uu).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 72.19 771.61 771.61">
+  <path
+    d="M 380.98 541.67 A 52.00 52.00 0 0 1 456.01 495.04 L 677.19 604.27 A 52.00 52.00 0 0 1 677.19 697.52 L 456.01 806.75 A 52.00 52.00 0 0 1 380.98 760.13 L 380.98 541.67 Z"
+    opacity="0.8"
+    fill="#247edf"
+    stroke="#ffffff"
+    stroke-width="50"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    paint-order="stroke fill"
+  />
+</svg>

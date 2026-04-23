@@ -48,7 +48,7 @@ struct LauncherSettings: Codable, Equatable {
     /// Mitgelieferte Standard-`-D`-Properties für **Java 8** auf macOS (Menüleiste, Anwendungsname, Darstellung, Kantenglättung).
     static let recommendedJava8VmArgumentsForMacOS: [String] = [
         "-Dapple.laf.useScreenMenuBar=true",
-        "-Dapple.awt.application.name=enventa Trade ERP",
+        "-Dapple.awt.application.name=\(LauncherProductNaming.javaAwtApplicationMenuBarName)",
         "-Dapple.awt.application.appearance=system",
         "-Dapple.awt.antialiasing=true",
         "-Dapple.awt.textantialiasing=true",

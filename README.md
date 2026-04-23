@@ -1,6 +1,6 @@
 # enventa Trade ERP Launcher (macOS)
 
-**Bizolution Launcher für enventa Trade ERP (macOS)** — entwickelt von der **BIZOLUTION GmbH** (demnächst **bizolution GmbH**) für **enventa Trade ERP** der enventa Group.
+**enventa Trade ERP Launcher** (macOS) — bereitgestellt von der **BIZOLUTION GmbH** (demnächst **bizolution GmbH**) als **Vertriebs- und Technologiepartner**, damit **enventa Trade ERP** (Produkt der **enventa Technical Trade Solutions GmbH**, Teil der **enventa Group**) auf dem Mac gestartet werden kann. Die **Launcher-Oberfläche** nutzt **Bizolution**-Logos; die **Java-ERP-Anwendung** behält die **Icons der jeweiligen Client-Anwendung** (u. a. `Icon.png` / `-Xdock:icon`). Der Launcher ist **kein** offizielles Produkt des ERP-Herstellers — siehe Hinweis in der App.
 
 Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Client Launcher** (.NET / WPF), angelehnt an die dekompilierte Logik (`LaunchService`, `JavaRuntimeService`, `CacheService`, `ConfigService`, `FS.Hosting.Broker.Model`).
 
@@ -15,8 +15,8 @@ Native macOS-Implementierung der Funktionalität des Windows-Programms **FS Clie
 - JAR-Cache unter **`~/Library/Caches/bizolution/enventa Trade ERP Launcher/.jarcache/`** (Trennung Roaming vs. Local analog Windows).
 - Logdateien unter **`~/Library/Application Support/bizolution/enventa Trade ERP Launcher/Logfiles/`** (wie `Logfiles` unter Windows).
 - **Cache-Bereinigung** wie `CacheService.CleanupCache` inkl. Logdatei-Bereinigung; in der Konfiguration steuerbar und nach dem Java-Lauf parallel ausgeführt.
-- **Volllogo** ist eingebettet; **Mark** (`enventa-mark-cropped.svg`) liegt unter `Sources/TradeERPLauncherLib/Resources/` und wird in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird daraus erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
-- **Java-Dock & Kacheln:** `Sources/TradeERPLauncherLib/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit den grünen Balken). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
+- **Volllogo** Light (`bizolution-logo-farbe-rgb.svg`) / Dark (`bizolution-logo-farbe-dark.svg`, weiße Textmarke) und **Bildmarke** (`bizolution-mark-farbe-rgb.svg`, Verläufe wie im Lieferpaket) liegen unter `Sources/TradeERPLauncherLib/Resources/` und werden in die `.app` kopiert. **Finder-Icon / DMG-Volumen-Icon:** `AppIcon.icns` wird aus Bildmarke + `app-icon-play.svg` erzeugt (`Scripts/build_app_icon.sh`: `rsvg-convert`, `Scripts/normalize_iconset_png.swift` mit **transparenten Außenbereichen** und **abgerundeter Maske** ~22,3 % Eckenradius — typische macOS-Icon-Optik, `iconutil`).
+- **Java-Dock & Kacheln:** `Sources/TradeERPLauncherLib/Resources/Icon.png` (gebündelt, getrennt vom Launcher-`AppIcon.icns` mit der **Bizolution**-Bildmarke). Der Launcher maskiert dieses PNG für `-Xdock:icon` und die FS-Client-Kacheln wie ein macOS-App-Symbol.
 
 ## JDK / JRE
 

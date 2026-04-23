@@ -1,8 +1,8 @@
 import AppKit
 
-/// Menüleisten-Mark: vektorgetreu aus `enventa-mark-cropped.svg` (siehe `EnventaMarkVectorTemplate`).
+/// Menüleisten-Icon: Bildmarke (Vektor wie Marke-SVG) plus Play-Dreieck (siehe `BizolutionMarkVectorTemplate`).
 enum TrayMarkTemplateRenderer {
     static func menuBarImage(side: CGFloat = 18) -> NSImage {
-        EnventaMarkVectorTemplate.menuBarTemplateImage(side: side)
+        BizolutionMarkVectorTemplate.menuBarTemplateImage(side: side)
     }
 }

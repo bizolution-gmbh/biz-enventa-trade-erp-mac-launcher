@@ -34,8 +34,8 @@ final class MenuBarExtraController: NSObject {
         }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
-            // Menüleiste: exakt `enventa-mark-cropped.svg` als Template (WebKit-Snapshot), asynchron.
-            button.toolTip = "enventa Trade ERP Launcher"
+            // Menüleiste: Bildmarke + Play-Dreieck als Template (`BizolutionMarkVectorTemplate`, transparenter Saum zum Mark).
+            button.toolTip = LauncherProductNaming.displayName
             button.appearsDisabled = false
             let mark = TrayMarkTemplateRenderer.menuBarImage(side: 18)
             mark.size = NSSize(width: 18, height: 18)
@@ -112,7 +112,7 @@ final class MenuBarExtraController: NSObject {
         menu.addItem(.separator())
 
         let quit = NSMenuItem(
-            title: "enventa Trade ERP Launcher beenden",
+            title: "\(LauncherProductNaming.displayName) beenden",
             action: #selector(quitApp(_:)),
             keyEquivalent: "q"
         )

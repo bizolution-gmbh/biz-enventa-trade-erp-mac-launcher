@@ -91,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // Menüleisten-App: Prozess bleibt aktiv; Beenden nur über „enventa Trade ERP Launcher beenden“ im Tray.
+        // Menüleisten-App: Prozess bleibt aktiv; Beenden nur über „… beenden“ im Tray-Menü.
         false
     }
 
@@ -121,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
         keepAliveActivity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiated],
-            reason: "enventa Trade ERP Launcher (Menüleiste) bleibt aktiv"
+            reason: "\(LauncherProductNaming.displayName) (Menüleiste) bleibt aktiv"
         )
         MenuBarExtraController.shared.installIfNeeded()
 
@@ -184,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let win = NSWindow(contentViewController: root)
         win.setContentSize(NSSize(width: 620, height: 640))
         win.styleMask = [.titled, .closable, .miniaturizable]
-        win.title = "enventa Trade ERP Launcher"
+        win.title = LauncherProductNaming.displayName
         win.center()
         win.delegate = self
         win.makeKeyAndOrderFront(nil)
@@ -297,7 +297,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             versionContinue: { required, installed in
                 await MainActor.run {
                     let alert = NSAlert()
-                    alert.messageText = "enventa Trade ERP Launcher aktualisieren?"
+                    alert.messageText = "\(LauncherProductNaming.displayName) aktualisieren?"
                     alert.informativeText =
                         "Der Broker verlangt mindestens Version \(required). Installiert ist \(installed).\n\nMit alter Version fortfahren?"
                     alert.alertStyle = .warning
@@ -319,7 +319,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             JavaProcessOutputWindow.shared.append("\n—— Fehler: \(error.localizedDescription) ——\n")
         }
         let alert = NSAlert()
-        alert.messageText = "enventa Trade ERP Launcher"
+        alert.messageText = LauncherProductNaming.displayName
         alert.informativeText = error.localizedDescription
         alert.alertStyle = .critical
         alert.runModal()
@@ -342,7 +342,7 @@ private struct ConfigRootView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EnventaLogoHeader()
+            BizolutionLogoHeader()
                 .padding(.top, 8)
             TabView {
                 generalTab
@@ -452,7 +452,7 @@ private struct ConfigRootView: View {
                         .font(.title2)
                         .accessibilityHidden(true)
                     Text(
-                        "Dieser Launcher ist kein offizielles Produkt der enventa group GmbH. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
+                        "Dieser enventa Trade ERP Launcher wird von der BIZOLUTION GmbH als Vertriebs- und Technologiepartner bereitgestellt. Er ist kein offizielles Produkt der enventa Technical Trade Solutions GmbH (Teil der enventa Group). enventa Trade ERP lässt sich auf dem Mac nur eingeschränkt nutzen."
                     )
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
@@ -465,7 +465,7 @@ private struct ConfigRootView: View {
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(
-                    "Hinweis: Dieser Launcher ist kein offizielles Produkt der enventa group GmbH. enventa Trade ERP lässt sich auf dem Mac nur sehr eingeschränkt nutzen."
+                    "Hinweis: Dieser enventa Trade ERP Launcher wird von der BIZOLUTION GmbH als Vertriebs- und Technologiepartner bereitgestellt. Er ist kein offizielles Produkt der enventa Technical Trade Solutions GmbH (Teil der enventa Group). enventa Trade ERP lässt sich auf dem Mac nur eingeschränkt nutzen."
                 )
             }
             .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))

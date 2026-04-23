@@ -105,7 +105,7 @@ extension URLError {
             return """
             Hinweis: Der Code \(u.code.rawValue) wird von Apple für mehrere Fälle genutzt, in denen URLSession **keinen brauchbaren Netzwerkweg** für die Anfrage findet — nicht nur bei tatsächlich fehlendem Internet. Dazu zählen u. a. Proxy/VPN, Captive Portals, kurz nach dem Aufwachen des Systems oder andere lokale Netzwerkrichtlinien. Die Meldung belegt damit **nicht**, dass der Broker-Host grundsätzlich unerreichbar wäre.
 
-            Wenn macOS zuvor nach **„Lokalem Netzwerk“** (interne Firmen-Server) gefragt hat und die Freigabe **abgelehnt** wurde: unter **Systemeinstellungen → Datenschutz & Sicherheit → Lokales Netzwerk** den Eintrag **enventa Trade ERP Launcher** aktivieren — sonst blockiert das System TCP zu vielen internen Adressen (der Browser kann davon unabhängig weiter funktionieren).
+            Wenn macOS zuvor nach **„Lokalem Netzwerk“** (interne Firmen-Server) gefragt hat und die Freigabe **abgelehnt** wurde: unter **Systemeinstellungen → Datenschutz & Sicherheit → Lokales Netzwerk** den Eintrag **\(LauncherProductNaming.displayName)** aktivieren — sonst blockiert das System TCP zu vielen internen Adressen (der Browser kann davon unabhängig weiter funktionieren).
             """
         case .cannotConnectToHost, .timedOut, .networkConnectionLost:
             return """

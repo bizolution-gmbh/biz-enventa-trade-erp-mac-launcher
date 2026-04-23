@@ -14,13 +14,13 @@ import Foundation
 let W: CGFloat = 400
 let H: CGFloat = 200
 let iconSize: CGFloat = 88
-let brandGreen = NSColor(red: 0x9E / 255, green: 0xBE / 255, blue: 0x2E / 255, alpha: 1)
+let brandAccent = NSColor(red: 0x24 / 255, green: 0x7E / 255, blue: 0xDF / 255, alpha: 1)
 
 /// Footer-Logo: Breite und Höhe in **PNG-Punkten** (klar lesbar; bei anderem Motiv beide Werte anpassen).
-/// Vorheriges Layout entsprach grob dem SVG enventa-logo-full in ~120×25 px hier — ohne Formel im Code.
+/// Footer-Logo: `bizolution-logo-farbe-rgb.svg` (viewBox ~3,69∶1).
 let marginBottomCocoa: CGFloat = 10
-let logoW: CGFloat = 120
-let logoH: CGFloat = 25
+let logoW: CGFloat = 126
+let logoH: CGFloat = 34
 
 /// Oberkante Logo in top-down: H − Rand − Logo-Höhe
 let logoTopTD: CGFloat = H - marginBottomCocoa - logoH
@@ -123,7 +123,7 @@ func drawImage(_ image: NSImage, in rect: NSRect) {
 }
 
 let root = projectRoot()
-let svgLogo = (root as NSString).appendingPathComponent("Sources/TradeERPLauncherLib/Resources/enventa-logo-full.svg")
+let svgLogo = (root as NSString).appendingPathComponent("Sources/TradeERPLauncherLib/Resources/bizolution-logo-farbe-rgb.svg")
 let outPath = (root as NSString).appendingPathComponent("Scripts/dmg_install_background.png")
 
 let Wi = Int(W)
@@ -159,7 +159,7 @@ drawArrowHorizontal(
     from: NSPoint(x: ax1, y: rowCenterCocoa),
     to: NSPoint(x: ax2, y: rowCenterCocoa),
     lineWidth: 11,
-    color: brandGreen
+    color: brandAccent
 )
 
 let logoRect = NSRect(

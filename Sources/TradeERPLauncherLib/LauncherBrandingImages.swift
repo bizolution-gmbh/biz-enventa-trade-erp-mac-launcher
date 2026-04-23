@@ -1,6 +1,6 @@
 import AppKit
 
-/// Branding für **Java `-Xdock:icon`** und **FS-Client-Kacheln** — getrennt vom **Launcher**-Symbol (`AppIcon.icns`, grüne Balken).
+/// Branding für **Java `-Xdock:icon`** und **FS-Client-Kacheln** — getrennt vom **Launcher**-Symbol (`AppIcon.icns`).
 ///
 /// **Quelle:** ausschließlich gebündeltes **`Icon.png`** (FS-Client-/Java-Dock-Marke). Kein Fallback auf `AppIcon.icns`, damit das Launcher-Icon nicht an diesen Stellen erscheint.
 ///

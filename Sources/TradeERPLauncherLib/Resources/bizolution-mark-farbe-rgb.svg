@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Bildmarke" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 72.19 771.61 771.61">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#Unbenannter_Verlauf_129-2);
+      }
+
+      .cls-2 {
+        fill: url(#Unbenannter_Verlauf_129);
+      }
+
+      .cls-3 {
+        fill: url(#Unbenannter_Verlauf_115);
+      }
+    </style>
+    <linearGradient id="Unbenannter_Verlauf_129" data-name="Unbenannter Verlauf 129" x1="427.22" y1="120.66" x2="567.08" y2="504.91" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2fd4e0"/>
+      <stop offset="1" stop-color="#1927dd"/>
+    </linearGradient>
+    <linearGradient id="Unbenannter_Verlauf_129-2" data-name="Unbenannter Verlauf 129" x1="238.51" y1="173.04" x2="373.02" y2="542.62" xlink:href="#Unbenannter_Verlauf_129"/>
+    <linearGradient id="Unbenannter_Verlauf_115" data-name="Unbenannter Verlauf 115" x1="567.6" y1="747.49" x2="330.33" y2="420.91" gradientUnits="userSpaceOnUse">
+      <stop offset=".27" stop-color="#ff5800"/>
+      <stop offset=".55" stop-color="#ff7b00"/>
+      <stop offset=".96" stop-color="#ffb600"/>
+    </linearGradient>
+  </defs>
+  <rect class="cls-2" x="430.97" y="189.04" width="66.47" height="66.47" rx="6" ry="6"/>
+  <path class="cls-1" d="M349.63,307.83h-101.42v-112.79c0-3.31-2.69-6-6-6h-54.47c-3.31,0-6,2.69-6,6v280.68c0,68.71,41.49,127.91,100.72,153.87l63.38-52.53c-54.18-1.99-97.63-46.69-97.63-101.34v-101.42h101.42c23.71,0,45.54,8.17,62.84,21.86h84.98c-28.4-52.55-84-88.33-147.81-88.33Z"/>
+  <path class="cls-3" d="M584.45,515.19l-184.07,152.59h183.49c3.31,0,6,2.69,6,6v54.47c0,3.31-2.69,6-6,6h-268.92c-3.81,0-6.9-3.09-6.9-6.9v-62.59c0-4.47,1.99-8.7,5.43-11.55l184.07-152.59h-183.49c-3.31,0-6-2.69-6-6v-54.47c0-3.31,2.69-6,6-6h268.92c3.81,0,6.9,3.09,6.9,6.9v62.59c0,4.47-1.99,8.7-5.43,11.55Z"/>
+</svg>

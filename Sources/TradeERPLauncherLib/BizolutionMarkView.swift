@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import WebKit
 
-/// Markenzeichen: `enventa-mark-cropped.svg` (Bundle) bzw. eingebetteter Fallback — nur die drei grünen Pfade.
-struct EnventaMarkWebView: NSViewRepresentable {
+/// Markenzeichen: `bizolution-mark-farbe-rgb.svg` (Bundle) bzw. eingebetteter Fallback.
+struct BizolutionMarkWebView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
@@ -17,7 +17,7 @@ struct EnventaMarkWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         if context.coordinator.loaded { return }
         context.coordinator.loaded = true
-        let html = EnventaSVGEmbeddedHTML.document(svg: EnventaSVGSource.markCroppedSVGForRuntime(), transparentBackground: false)
+        let html = BizolutionSVGEmbeddedHTML.document(svg: BizolutionSVGSource.markCroppedSVGForRuntime(), transparentBackground: false)
         webView.loadHTMLString(html, baseURL: nil)
     }
 

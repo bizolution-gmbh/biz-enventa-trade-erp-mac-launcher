@@ -10,22 +10,21 @@ import Foundation
 /// Verzeichnisse unter alten Pfaden werden **ignoriert** (Schutz vor Manipulation / Verwechslung).
 enum AppPaths {
     private static let vendorFolder = "bizolution"
-    private static let appFolderName = "enventa Trade ERP Launcher"
 
-    /// `~/Library/Application Support/bizolution/enventa Trade ERP Launcher`
+    /// `~/Library/Application Support/bizolution/<LauncherProductNaming.appDataFolderLeafName>`
     static var appDataDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support", isDirectory: true)
             .appendingPathComponent(vendorFolder, isDirectory: true)
-            .appendingPathComponent(appFolderName, isDirectory: true)
+            .appendingPathComponent(LauncherProductNaming.appDataFolderLeafName, isDirectory: true)
     }
 
-    /// `~/Library/Caches/bizolution/enventa Trade ERP Launcher`
+    /// `~/Library/Caches/bizolution/<LauncherProductNaming.appDataFolderLeafName>`
     static var localAppDataDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Caches", isDirectory: true)
             .appendingPathComponent(vendorFolder, isDirectory: true)
-            .appendingPathComponent(appFolderName, isDirectory: true)
+            .appendingPathComponent(LauncherProductNaming.appDataFolderLeafName, isDirectory: true)
     }
 
     static var launcherConfigURL: URL {
@@ -275,10 +274,11 @@ enum AppPaths {
         }
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         var o = t
+        let leaf = LauncherProductNaming.appDataFolderLeafName
         let replacements: [(String, String)] = [
-            ("\(home)/FSClientLauncher/", "\(home)/Library/Application Support/bizolution/enventa Trade ERP Launcher/"),
-            ("\(home)/Library/Application Support/enventa Group/FS Client Launcher/", "\(home)/Library/Application Support/bizolution/enventa Trade ERP Launcher/"),
-            ("\(home)/Library/Application Support/TradeERPLauncher/", "\(home)/Library/Application Support/bizolution/enventa Trade ERP Launcher/"),
+            ("\(home)/FSClientLauncher/", "\(home)/Library/Application Support/bizolution/\(leaf)/"),
+            ("\(home)/Library/Application Support/enventa Group/FS Client Launcher/", "\(home)/Library/Application Support/bizolution/\(leaf)/"),
+            ("\(home)/Library/Application Support/TradeERPLauncher/", "\(home)/Library/Application Support/bizolution/\(leaf)/"),
             ("/ImportedFsClients/", "/ImportedLauncherDefinitions/"),
         ]
         for (old, new) in replacements {

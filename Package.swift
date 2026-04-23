@@ -17,12 +17,14 @@ let package = Package(
                 // Werden vom Build-Skript aus dem Arbeitsbaum gelesen/kopiert, nicht als SPM-Ressource eingebunden (vermeidet „unhandled files“-Warnung).
                 "Resources/AppIcon.icns",
                 "Resources/AppIcon.iconset",
-                "Resources/enventa-logo-full.svg",
-                "Resources/enventa-mark-cropped.svg",
+                "Resources/app-icon-play.svg",
             ],
             resources: [
                 .copy("Resources/Icon.png"),
                 .copy("Resources/Java8RuntimeCatalog.json"),
+                .copy("Resources/bizolution-mark-farbe-rgb.svg"),
+                .copy("Resources/bizolution-logo-farbe-rgb.svg"),
+                .copy("Resources/bizolution-logo-farbe-dark.svg"),
             ]
         ),
         .executableTarget(

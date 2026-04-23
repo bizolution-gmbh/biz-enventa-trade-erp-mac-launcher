@@ -124,7 +124,7 @@ enum LaunchCoordinator {
             throw NSError(
                 domain: "TradeERPLauncher",
                 code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "enventa Trade ERP Launcher muss aktualisiert werden (min. \(req), installiert \(ins))."]
+                userInfo: [NSLocalizedDescriptionKey: "\(LauncherProductNaming.displayName) muss aktualisiert werden (min. \(req), installiert \(ins))."]
             )
         case .shouldAskToContinue(let req, let ins):
             let ok = await versionContinue(req, ins)

@@ -1,7 +1,7 @@
 ---
 description: Icons, App- und DMG-Grafik — Apple HIG, Transparenz, Pipeline
 alwaysApply: false
-globs: "**/Scripts/**,**/Resources/**,**/*.icns,**/AppIcon.*,**/Icon.png,**/enventa-*"
+globs: "**/Scripts/**,**/Resources/**,**/*.icns,**/AppIcon.*,**/Icon.png,**/bizolution-*"
 ---
 
 # Icons & visuelle Assets (macOS)
