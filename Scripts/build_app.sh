@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DMG: Nach Erfolg wird dist/ auf die .dmg reduziert (siehe README, KEEP_DIST_APP=1 zum Behalten der .app).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="enventa Trade ERP Launcher.app"
@@ -240,4 +241,13 @@ fi
 trap - EXIT
 rm -rf "${STAGE}"
 echo "DMG: ${DMG}"
+if [[ -f "${DMG}" ]] && [[ -s "${DMG}" ]]; then
+  if [[ -z "${KEEP_DIST_APP:-}" ]]; then
+    echo "==> dist: Zwischenartefakte entfernt (nur $(basename "${DMG}") — .app und dist/TradeERPLauncher). Mit KEEP_DIST_APP=1 bleiben sie."
+    rm -rf "${DEST}"
+    rm -f "${ROOT}/dist/TradeERPLauncher"
+  else
+    echo "==> dist: KEEP_DIST_APP=1 → App-Bundle und Binary unter dist/ bleiben erhalten."
+  fi
+fi
 echo "Hinweis: Beim geöffneten DMG zeigt die Menüleiste weiter „Finder“ — es ist ein normales Finder-Fenster (kein eigenes Mini-Programm)."

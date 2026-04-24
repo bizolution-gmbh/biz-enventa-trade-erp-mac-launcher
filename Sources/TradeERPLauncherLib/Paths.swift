@@ -1,10 +1,11 @@
 import CryptoKit
 import Foundation
 
-/// macOS-Ablage für Launcher-Daten unter **bizolution** (Hersteller dieser Software).
+/// macOS-Ablage für Launcher-Daten unter **bizolution** (`~/Library/Application Support/bizolution/…`,
+/// `~/Library/Caches/bizolution/…` — keine neue Ablage unter `~/enventa Group` o. Ä.).
 ///
 /// **Einmalige Migration:** Beim ersten Start mit diesem Layout wird von älteren Pfaden
-/// (`enventa Group/FS Client Launcher`, `~/FSClientLauncher`, …) nach `bizolution/…` migriert.
+/// (`Library/…/enventa Group/FS Client Launcher`, `~/FSClientLauncher`, …) nach `bizolution/…` migriert.
 /// Danach existiert eine Marker-Datei (`.storage-layout-v1.migrated`); solange sie besteht,
 /// werden **keine** Alt-Pfade mehr eingelesen oder zusammengeführt — nachträglich angelegte
 /// Verzeichnisse unter alten Pfaden werden **ignoriert** (Schutz vor Manipulation / Verwechslung).
@@ -158,7 +159,22 @@ enum AppPaths {
         }
 
         removeEmptyLegacyMigrationRootsIfPresent(fm: fm, home: home)
+        removeEmptyLegacyVendorShellDirectoriesIfPresent(fm: fm, home: home)
         writeStorageLayoutMigrationMarker(fm: fm)
+    }
+
+    /// Entfernt leere **Überordner** alter Hersteller-Pfade (z. B. `…/Application Support/enventa Group`), damit nach
+    /// der Migration keine leeren `enventa Group`-Hüllen liegen bleiben. Nur wenn leer (außer `.DS_Store`);
+    /// `~/enventa Group` nur, wenn leer — niemals mit Inhalt löschen.
+    private static func removeEmptyLegacyVendorShellDirectoriesIfPresent(fm: FileManager, home: URL) {
+        let shells: [URL] = [
+            home.appendingPathComponent("Library/Application Support/enventa Group", isDirectory: true),
+            home.appendingPathComponent("Library/Caches/enventa Group", isDirectory: true),
+            home.appendingPathComponent("enventa Group", isDirectory: true),
+        ]
+        for shell in shells {
+            removeDirectoryIfEffectivelyEmpty(at: shell, fm: fm)
+        }
     }
 
     /// Entfernt nur **leere** bekannte Alt-Wurzeln (kein Löschen bei verbleibenden Dateien nach Merge-Konflikten).

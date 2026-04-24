@@ -101,6 +101,10 @@ swiftc -O Sources/TradeERPLauncherLib/*.swift -o TradeERPLauncher \
 ./Scripts/build_app.sh
 ```
 
+Nach erfolgreichem DMG-Bau räumt das Skript **`dist/`** standardmäßig auf (**nur** die `.dmg`-Datei bleibt; Zwischen-`.app` und `dist/TradeERPLauncher` werden entfernt). Zum Behalten der `.app` zum lokalen Testen: **`KEEP_DIST_APP=1 ./Scripts/build_app.sh`**.
+
+Launcher-Daten liegen unter **`~/Library/Application Support/bizolution/…`** und **`~/Library/Caches/bizolution/…`** (keine neue Ablage unter `enventa Group`; leere Rest-Ordner nach Migration werden entfernt).
+
 Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bundle übernimmt; sonst manuell nach `dist/…/Contents/Resources/` kopieren. App signieren/notarisieren, falls ausgeliefert wird.
 
 **Drittanbieter & Lizenzen:** Java-8-Download (**Azul Zulu** + JavaFX) — vor dem Download zeigt die App einen Hinweis inkl. Verweis auf [Azul — Third-party licenses](https://docs.azul.com/core/tpls/); entpackte JDKs enthalten eigene Lizenzdateien. Mitgelieferte **JDK 11/21** (z. B. Temurin): siehe **`Scripts/JDK_BUNDLE.md`**. Gesamtüberblick: **`THIRD_PARTY_NOTICES.md`**.

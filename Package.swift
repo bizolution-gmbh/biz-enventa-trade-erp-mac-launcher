@@ -18,6 +18,7 @@ let package = Package(
                 "Resources/AppIcon.icns",
                 "Resources/AppIcon.iconset",
                 "Resources/app-icon-play.svg",
+                "Resources/dmg_arrow.png",
             ],
             resources: [
                 .copy("Resources/Icon.png"),
