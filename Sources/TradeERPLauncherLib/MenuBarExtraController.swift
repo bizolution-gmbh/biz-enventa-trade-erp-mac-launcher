@@ -70,6 +70,14 @@ final class MenuBarExtraController: NSObject {
         settingsItem.keyEquivalentModifierMask = [.command]
         menu.addItem(settingsItem)
 
+        let aboutItem = NSMenuItem(
+            title: "Über \(LauncherProductNaming.displayName) …",
+            action: #selector(showAboutPanel(_:)),
+            keyEquivalent: ""
+        )
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
         menu.addItem(.separator())
 
         let header = NSMenuItem(title: "Anwendungen", action: nil, keyEquivalent: "")
@@ -125,6 +133,10 @@ final class MenuBarExtraController: NSObject {
 
     @objc private func openSettings(_ sender: Any?) {
         AppDelegate.shared?.showConfigWindowFromMenuBar()
+    }
+
+    @objc private func showAboutPanel(_ sender: Any?) {
+        LauncherAboutPanel.present()
     }
 
     @objc private func presentAddApplication(_ sender: Any?) {

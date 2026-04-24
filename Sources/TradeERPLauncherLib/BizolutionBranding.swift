@@ -2,6 +2,19 @@ import AppKit
 import SwiftUI
 import WebKit
 
+/// App-Symbol aus dem aktuellen Bundle (Finder-Icon), für die Einstellungs-Kopfzeile.
+private enum LauncherAppBundleIcon {
+    static func nsImage(pointSize: CGFloat = 48) -> NSImage? {
+        let path = Bundle.main.bundlePath
+        guard !path.isEmpty else { return nil }
+        let icon = NSWorkspace.shared.icon(forFile: path)
+        let s = NSSize(width: pointSize, height: pointSize)
+        guard s.width > 0, s.height > 0 else { return nil }
+        icon.size = s
+        return icon
+    }
+}
+
 /// Gleiche Flächenfarbe wie `Color(nsColor: .windowBackgroundColor)` im Aqua- bzw. Dark-Aqua-Kontext (Titelleiste / Header).
 private func windowBackgroundHex(forDark isDark: Bool) -> String {
     let name: NSAppearance.Name = isDark ? .darkAqua : .aqua
@@ -56,14 +69,45 @@ struct BizolutionLogoHeader: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
+                    if let appIcon = LauncherAppBundleIcon.nsImage() {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .interpolation(.high)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 48, height: 48)
+                            .accessibilityHidden(true)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(LauncherProductNaming.displayName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                        Text(LauncherProductNaming.settingsHeaderSubtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(
+                        "\(LauncherProductNaming.displayName), \(LauncherProductNaming.settingsHeaderSubtitle)"
+                    )
+                }
+                .layoutPriority(0)
+
+                Spacer(minLength: 8)
+
                 BizolutionFullLogoWebView(isDark: colorScheme == .dark)
                     .aspectRatio(Self.fullLogoAspect, contentMode: .fit)
                     .frame(height: 38)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
+                    .layoutPriority(1)
                     .accessibilityLabel("Bizolution Logo")
-                Spacer(minLength: 0)
             }
             Divider()
         }

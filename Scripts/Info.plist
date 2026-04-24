@@ -20,6 +20,8 @@
 	<string>4.8.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 BIZOLUTION GmbH. Alle Rechte vorbehalten.</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleSignature</key>

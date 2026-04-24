@@ -50,8 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 ?? (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String)
                 ?? ProcessInfo.processInfo.processName
             let appItem = NSMenuItem()
-            appItem.submenu = NSMenu()
-            appItem.submenu?.addItem(withTitle: "\(appName) beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+            let appSub = NSMenu()
+            let aboutItem = NSMenuItem(
+                title: "Über \(appName)",
+                action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                keyEquivalent: ""
+            )
+            aboutItem.target = NSApp
+            appSub.addItem(aboutItem)
+            appSub.addItem(.separator())
+            appSub.addItem(withTitle: "\(appName) beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+            appItem.submenu = appSub
             appItem.title = appName
             main.addItem(appItem)
             NSApp.mainMenu = main
@@ -361,6 +370,10 @@ private struct ConfigRootView: View {
                     .tabItem {
                         Label("Anwendungen", systemImage: "square.grid.2x2")
                     }
+                AboutSettingsView()
+                    .tabItem {
+                        Label("Über", systemImage: "info.circle")
+                    }
             }
             .padding(.horizontal, 12)
             Divider()
@@ -374,15 +387,6 @@ private struct ConfigRootView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.bar.opacity(0.35))
-
-            Text("© 2026 BIZOLUTION GmbH")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 8)
         }
         .onAppear {
             shortcutsStore.loadFromDisk()
@@ -445,31 +449,6 @@ private struct ConfigRootView: View {
     @ViewBuilder
     private var generalTab: some View {
         Form {
-            Section {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .font(.title2)
-                        .accessibilityHidden(true)
-                    Text(
-                        "Dieser enventa Trade ERP Launcher wird von der BIZOLUTION GmbH als Vertriebs- und Technologiepartner bereitgestellt. Er ist kein offizielles Produkt der enventa Technical Trade Solutions GmbH (Teil der enventa Group). enventa Trade ERP lässt sich auf dem Mac nur eingeschränkt nutzen."
-                    )
-                    .font(.callout)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.orange.opacity(0.14))
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(
-                    "Hinweis: Dieser enventa Trade ERP Launcher wird von der BIZOLUTION GmbH als Vertriebs- und Technologiepartner bereitgestellt. Er ist kein offizielles Produkt der enventa Technical Trade Solutions GmbH (Teil der enventa Group). enventa Trade ERP lässt sich auf dem Mac nur eingeschränkt nutzen."
-                )
-            }
-            .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
-
             Section("Allgemein") {
                 Toggle(
                     "Konsole: Java-Flags (DisplayConsole, -DDisplayConsole) und Ausgabefenster (Stdout/Stderr)",
