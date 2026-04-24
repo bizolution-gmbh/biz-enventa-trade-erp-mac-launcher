@@ -93,7 +93,7 @@ swiftc -O Sources/TradeERPLauncherLib/*.swift -o TradeERPLauncher \
   -sdk "$(xcrun --sdk macosx --show-sdk-path)" -target arm64-apple-macosx13.0
 ```
 
-**Build-Werkzeuge (optional):** Zum Erzeugen von **`AppIcon.icns`** und DMG-Hintergrund nutzen die Skripte u. a. **`rsvg-convert`** (Paket **librsvg**, unter Homebrew typischerweise **LGPL**) — nur als **externes** Kommandozeilenprogramm, **ohne** Einbindung in die Launcher-Binary. Optional: **`create-dmg`** für das DMG-Layout. Details und weitere Drittanbieter: **`THIRD_PARTY_NOTICES.md`**.
+**Build-Werkzeuge (optional):** Zum Erzeugen von **`AppIcon.icns`** und dem **DMG-Hintergrund** (`Scripts/RenderDMGBackground.swift`: Verlauf + **`Sources/TradeERPLauncherLib/Resources/dmg_arrow.png`** + Footer-Logo-SVG) nutzen die Skripte u. a. **`rsvg-convert`** (Paket **librsvg**, unter Homebrew typischerweise **LGPL**) — nur als **externes** Kommandozeilenprogramm, **ohne** Einbindung in die Launcher-Binary. Optional: **`create-dmg`** für das DMG-Layout; Konstanten **`Scripts/dmg_layout_constants.sh`**, Überblick **`Scripts/DMG_HINTERGRUND.txt`**. Weitere Drittanbieter: **`THIRD_PARTY_NOTICES.md`**.
 
 **.app-Bundle:**
 

@@ -10,7 +10,18 @@ Optionales Hintergrundbild
 ---------------------------
 Große Hersteller-DMGs legen zusätzlich eine **PNG** ins Fenster (Pfeil, Text, freie Flächen).
 
-  Datei:  Scripts/dmg_install_background.png
+Artefakte (Überblick)
+~~~~~~~~~~~~~~~~~~~~~
+  Ausgabe (Build/CI):     Scripts/dmg_install_background.png  — Verlauf + Pfeil + Footer-Logo
+  Pfeil (Quelle, PNG):    Sources/TradeERPLauncherLib/Resources/dmg_arrow.png  — transparent, typ. 240×120 @1x
+  Footer-Logo (Quelle):   Sources/TradeERPLauncherLib/Resources/bizolution-logo-farbe-rgb.svg
+  Layout create-dmg:      Scripts/dmg_layout_constants.sh  — mit RenderDMGBackground.swift abstimmen
+  Referenz-Mockup:       docs/mockups/dmg-curved-arrow-mockup.png  (nur Design-Referenz, kein Build-Schritt)
+
+  Pfeil-Deckkraft im Renderer: Konstante `dmgArrowOpacity` in RenderDMGBackground.swift (derzeit 0,5).
+  Pfeil optional neu rasterisieren (gleiche Kurven-Parameter wie früher im Renderer): swift Scripts/BakeDMGArrowPNG.swift
+  Gesamtbild erzeugen:    swift Scripts/RenderDMGBackground.swift [<repo-root>]
+
   Format: PNG (oder JPG/GIF, siehe `create-dmg --help`)
   Größe:  Hintergrund-PNG **400 × 200** px (fest); `create-dmg --window-size` =
   **400 × 200** px (siehe `dmg_layout_constants.sh`), **72 dpi**.

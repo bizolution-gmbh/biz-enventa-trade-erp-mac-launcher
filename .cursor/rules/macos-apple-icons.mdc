@@ -1,7 +1,7 @@
 ---
 description: Icons, App- und DMG-Grafik — Apple HIG, Transparenz, Pipeline
 alwaysApply: false
-globs: "**/Scripts/**,**/Resources/**,**/*.icns,**/AppIcon.*,**/Icon.png,**/bizolution-*"
+globs: "**/Scripts/**,**/Resources/**,**/*.icns,**/AppIcon.*,**/Icon.png,**/bizolution-*,**/dmg_arrow.png,**/dmg_install_background.png"
 ---
 
 # Icons & visuelle Assets (macOS)
@@ -9,4 +9,5 @@ globs: "**/Scripts/**,**/Resources/**,**/*.icns,**/AppIcon.*,**/Icon.png,**/bizo
 - **App-Icons (`.icns`)**, **DMG-Volumen-Icons** (`--volicon`), **Menü-/Tray-Symbole**, **Marken-Grafiken:** an [Human Interface Guidelines – Icons](https://developer.apple.com/design/human-interface-guidelines/icons) und gängige **macOS-Darstellung** halten.
 - **Keine kantigen Vollflächen-Icons** auf dem Schreibtisch / im Finder: **transparente Außenbereiche** oder **abgerundete Silhouette**, damit das System konsistent komponieren kann.
 - **Pipeline (TradeERPLauncher):** `Scripts/build_app_icon.sh` → `normalize_iconset_png.swift` (abgerundete Maske, ca. **22,3 %** Eckenradius) → `iconutil` / DMG-`volicon`.
+- **DMG-Hintergrund:** Quelle Pfeil = `Sources/TradeERPLauncherLib/Resources/dmg_arrow.png` (Raster, pflegen im Grafiktool); Komposition = `Scripts/RenderDMGBackground.swift` → `Scripts/dmg_install_background.png`; optional `Scripts/BakeDMGArrowPNG.swift` nur zum Neuerzeugen der Pfeil-PNG aus Kurvenparametern.
 - **Neue Assets/Skripte:** Kontrast, Lesbarkeit in **kleinen** Größen, **@2x**-Dichten; Pixel-Layout nur mit dokumentierten Konstanten (z. B. `dmg_layout_constants.sh` / `RenderDMGBackground.swift`).
