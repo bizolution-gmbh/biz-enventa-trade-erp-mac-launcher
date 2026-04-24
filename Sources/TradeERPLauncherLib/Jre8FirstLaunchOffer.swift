@@ -4,6 +4,12 @@ import Foundation
 /// Hinweis auf fehlende Java-8-Laufzeit (Zulu + JavaFX): Erststart und erneut, sobald die JRE fehlt; Download aus den Einstellungen möglich.
 @MainActor
 enum Jre8FirstLaunchOffer {
+    /// Lizenz-/Drittanbieter-Hinweis für heruntergeladene JDK-Pakete (Azul-Dokumentation zu Third-Party-Lizenzen).
+    private static let jre8DownloadLegalFooter = """
+
+        Für das Paket gelten die Lizenz- und Nutzungsbedingungen des jeweiligen Anbieters; Drittanbieterhinweise liegen im entpackten JDK. Bei **Azul Zulu** siehe u. a. https://docs.azul.com/core/tpls/
+        """
+
     /// Nur für den Fall „Hardware nicht erkennbar“: Hinweis nicht bei jedem Start wiederholen.
     private static let unknownHardwareAcknowledgedKey = "TradeERPLauncherJre8UnknownHardwareAcknowledged"
 
@@ -68,8 +74,7 @@ enum Jre8FirstLaunchOffer {
 
         \(AppPaths.downloadedJre8Directory.path)
 
-        Dafür ist eine Internetverbindung zum Download-Server der gewählten Quelle nötig. Für das Paket gelten die Lizenz- und Nutzungsbedingungen des jeweiligen Anbieters sowie die Drittanbieterhinweise im entpackten JDK — bei Zulu z. B. https://docs.azul.com/core/tpls/
-
+        Dafür ist eine Internetverbindung zum Download-Server der gewählten Quelle nötig.\(Self.jre8DownloadLegalFooter)
         Möchten Sie den Download jetzt ausführen?
         """
         consent.addButton(withTitle: "Herunterladen")
@@ -177,8 +182,7 @@ enum Jre8FirstLaunchOffer {
 
         \(AppPaths.downloadedJre8Directory.path)
 
-        abgelegt (keine systemweite Installation). Es ist eine Internetverbindung zum Download-Server nötig.
-
+        abgelegt (keine systemweite Installation). Es ist eine Internetverbindung zum Download-Server nötig.\(Self.jre8DownloadLegalFooter)
         Fortfahren?
         """
         consent.addButton(withTitle: "Herunterladen")

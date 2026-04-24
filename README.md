@@ -93,6 +93,8 @@ swiftc -O Sources/TradeERPLauncherLib/*.swift -o TradeERPLauncher \
   -sdk "$(xcrun --sdk macosx --show-sdk-path)" -target arm64-apple-macosx13.0
 ```
 
+**Build-Werkzeuge (optional):** Zum Erzeugen von **`AppIcon.icns`** und DMG-Hintergrund nutzen die Skripte u. a. **`rsvg-convert`** (Paket **librsvg**, unter Homebrew typischerweise **LGPL**) — nur als **externes** Kommandozeilenprogramm, **ohne** Einbindung in die Launcher-Binary. Optional: **`create-dmg`** für das DMG-Layout. Details und weitere Drittanbieter: **`THIRD_PARTY_NOTICES.md`**.
+
 **.app-Bundle:**
 
 ```bash
@@ -100,6 +102,8 @@ swiftc -O Sources/TradeERPLauncherLib/*.swift -o TradeERPLauncher \
 ```
 
 Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bundle übernimmt; sonst manuell nach `dist/…/Contents/Resources/` kopieren. App signieren/notarisieren, falls ausgeliefert wird.
+
+**Drittanbieter & Lizenzen:** Java-8-Download (**Azul Zulu** + JavaFX) — vor dem Download zeigt die App einen Hinweis inkl. Verweis auf [Azul — Third-party licenses](https://docs.azul.com/core/tpls/); entpackte JDKs enthalten eigene Lizenzdateien. Mitgelieferte **JDK 11/21** (z. B. Temurin): siehe **`Scripts/JDK_BUNDLE.md`**. Gesamtüberblick: **`THIRD_PARTY_NOTICES.md`**.
 
 **Release (Version, Git-Tag, GitHub):** `CHANGELOG.md` Abschnitt **`[Unreleased]`** mit Stichpunkten füllen, dann z. B. `./Scripts/release.sh --mac` (lokal: Commit + annotierter Tag `v4.8.0.x`) oder mit **`--push`** zusätzlich `git push` und **`gh release create`** (Fall B). Details und Optionen **`--vendor`** / **`--set`** im Kopfkommentar von `Scripts/release.sh`. Voraussetzung für `--push`: `gh auth login`.
 
