@@ -181,6 +181,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Task { await inboundLaunch.runLaunchArgument(path, persistShortcutAfterLaunch: persistShortcut) }
     }
 
+    /// Tray / registrierte Anwendungen: je nach Eintrag Java-Client oder Weblink im Standardbrowser.
+    func launchRegisteredApplication(recordId: UUID) {
+        didStartLaunchFlow = true
+        guard let rec = RegisteredApplicationsStore.shared.file.shortcuts.first(where: { $0.id == recordId }) else { return }
+        if rec.targetKind == .webBookmark {
+            let raw = RegisteredApplicationsStore.normalizeShortcutTarget(rec.path)
+            guard RegisteredApplicationsStore.isValidWebBookmarkURL(raw) else {
+                let alert = NSAlert()
+                alert.messageText = "Ungültige Adresse"
+                alert.informativeText = "Der gespeicherte Weblink ist keine gültige http(s)-URL."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+                return
+            }
+            guard let url = URL(string: raw) else {
+                let alert = NSAlert()
+                alert.messageText = "Ungültige Adresse"
+                alert.informativeText = "Die URL konnte nicht interpretiert werden."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+                return
+            }
+            if !NSWorkspace.shared.open(url) {
+                let alert = NSAlert()
+                alert.messageText = "Link konnte nicht geöffnet werden"
+                alert.informativeText = "macOS hat keinen Standardbrowser für diese Adresse geöffnet."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+            return
+        }
+        launchRegisteredApplicationFromMenuBar(path: rec.launchSourceForRunner)
+    }
+
     private func showConfigWindow() {
         if let w = configWindow, w.isVisible {
             w.makeKeyAndOrderFront(nil)

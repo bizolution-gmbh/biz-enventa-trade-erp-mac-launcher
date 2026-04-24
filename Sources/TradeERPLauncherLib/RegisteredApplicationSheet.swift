@@ -34,6 +34,7 @@ struct RegisteredApplicationSheet: View {
 
     @State private var titleText = ""
     @State private var pathText = ""
+    @State private var targetKind: RegisteredApplicationTargetKind = .launcher
 
     /// Damit nach „Nein“ nicht erneut gefragt wird, bis der Text geändert wird.
     @State private var declinedMacLauncherBridgeForPath: String?
@@ -64,14 +65,29 @@ struct RegisteredApplicationSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: .infinity)
 
+            // Menü statt segmentiert: lange deutsche Bezeichnungen würden im schmalen Tray-Fenster überlappen.
+            Picker("Eintragstyp", selection: $targetKind) {
+                Text("Client-Anwendung (Broker / .fsclient)").tag(RegisteredApplicationTargetKind.launcher)
+                Text("Weblink (im Browser öffnen)").tag(RegisteredApplicationTargetKind.webBookmark)
+            }
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             VStack(alignment: .leading, spacing: 6) {
-                Text("Adresse oder Datei")
+                Text(targetKind == .webBookmark ? "https-Adresse" : "Adresse oder Datei")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 HStack(alignment: .center, spacing: 8) {
-                    TextField("http…-Adresse einfügen oder Datei wählen", text: $pathText)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .default))
+                    TextField(
+                        targetKind == .webBookmark
+                            ? "https://… (wird unverändert im Standardbrowser geöffnet)"
+                            : "http…-Adresse einfügen oder Datei wählen",
+                        text: $pathText
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .default))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(1)
                     Button {
                         pickLauncherDefinitionFile()
                     } label: {
@@ -82,9 +98,10 @@ struct RegisteredApplicationSheet: View {
                     .buttonStyle(.bordered)
                     .help("Datei wählen")
                     .accessibilityLabel("Datei wählen")
+                    .disabled(targetKind == .webBookmark)
                 }
                 if pathValidationShowsHint {
-                    Text("Bitte eine Web-Adresse mit http… oder eine .fsclient-Datei angeben.")
+                    Text(validationHintText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -104,31 +121,54 @@ struct RegisteredApplicationSheet: View {
             }
         }
         .padding(22)
-        .frame(minWidth: 440)
+        .frame(minWidth: 560)
         .onAppear {
             declinedMacLauncherBridgeForPath = nil
             if isAddMode {
                 titleText = ""
                 pathText = ""
+                targetKind = .launcher
             } else if let id = recordId,
                       let r = store.file.shortcuts.first(where: { $0.id == id }) {
                 titleText = r.displayName
                 pathText = r.path
+                targetKind = r.targetKind
             }
         }
         .onChange(of: pathText) { _ in
             declinedMacLauncherBridgeForPath = nil
         }
+        .onChange(of: targetKind) { newKind in
+            declinedMacLauncherBridgeForPath = nil
+            if newKind == .webBookmark {
+                pathText = pathText.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
     }
 
     private var canSave: Bool {
-        RegisteredApplicationsStore.isValidShortcutTarget(pathText)
+        switch targetKind {
+        case .webBookmark:
+            return RegisteredApplicationsStore.isValidWebBookmarkURL(pathText)
+        case .launcher:
+            return RegisteredApplicationsStore.isValidShortcutTarget(pathText)
+        }
+    }
+
+    private var validationHintText: String {
+        switch targetKind {
+        case .webBookmark:
+            return "Bitte eine vollständige https://- oder http://-Adresse mit Hostnamen angeben."
+        case .launcher:
+            return "Bitte eine Web-Adresse mit http… (Broker/Definition) oder eine .fsclient-Datei angeben."
+        }
     }
 
     /// Eingabe vorhanden, aber noch nicht gültig — kurzer Hinweis statt nur ausgegrautem OK.
     private var pathValidationShowsHint: Bool {
         let t = pathText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !t.isEmpty && !RegisteredApplicationsStore.isValidShortcutTarget(pathText)
+        guard !t.isEmpty else { return false }
+        return !canSave
     }
 
     private func closeAfterUserAction() {
@@ -139,10 +179,16 @@ struct RegisteredApplicationSheet: View {
     private func save() {
         let userTitle = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
         let rawPath = pathText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard RegisteredApplicationsStore.isValidShortcutTarget(rawPath) else { return }
+        switch targetKind {
+        case .webBookmark:
+            guard RegisteredApplicationsStore.isValidWebBookmarkURL(rawPath) else { return }
+        case .launcher:
+            guard RegisteredApplicationsStore.isValidShortcutTarget(rawPath) else { return }
+        }
 
         var path = rawPath
-        if rawPath != declinedMacLauncherBridgeForPath,
+        if targetKind == .launcher,
+           rawPath != declinedMacLauncherBridgeForPath,
            LaunchConfiguration.shouldOfferLauncherBridge(forHttpShortcut: rawPath),
            let built = LaunchConfiguration.launcherLaunchURLFromWebDefinitionHTTP(rawPath) {
             let alert = NSAlert()
@@ -163,7 +209,12 @@ struct RegisteredApplicationSheet: View {
             }
         }
 
-        guard RegisteredApplicationsStore.isValidShortcutTarget(path) else { return }
+        switch targetKind {
+        case .webBookmark:
+            guard RegisteredApplicationsStore.isValidWebBookmarkURL(path) else { return }
+        case .launcher:
+            guard RegisteredApplicationsStore.isValidShortcutTarget(path) else { return }
+        }
         let norm = RegisteredApplicationsStore.normalizeShortcutTarget(path)
         let backing = recordId.flatMap { id in store.file.shortcuts.first { $0.id == id }?.importedFilePath }
         let fromFile = RegisteredApplicationsStore.readDefinitionTitleIfPresent(fromShortcutTarget: path, backingFile: backing)
@@ -183,7 +234,7 @@ struct RegisteredApplicationSheet: View {
         }
 
         if isAddMode {
-            if store.addRecord(path: norm, displayName: finalName) {
+            if store.addRecord(path: norm, displayName: finalName, targetKind: targetKind) {
                 closeAfterUserAction()
             } else {
                 let alert = NSAlert()
@@ -194,7 +245,7 @@ struct RegisteredApplicationSheet: View {
                 alert.runModal()
             }
         } else if let id = recordId {
-            store.updateRecord(id: id, displayName: finalName, path: norm)
+            store.updateRecord(id: id, displayName: finalName, path: norm, targetKind: targetKind)
             closeAfterUserAction()
         }
     }

@@ -138,16 +138,14 @@ Die Datei muss dasselbe **JSON** enthalten wie unter Windows (Schlüssel wie `br
 
 - **URL-Schema** (wie unter Windows): Links im Stil `fsclientlauncher:launch?broker=…` öffnen die App mit dem passenden Handler.
 
-Registrierte Anwendungen: optional wird unter dem **Broker-Stamm** (aus `broker` bzw. der Web-Definitions-URL) **`Icon.png`** geladen, als **SHA256-Dateiname** unter `~/Library/Application Support/bizolution/enventa Trade ERP Launcher/RegisteredAppIcons/` gespeichert (gleiche Grafik = eine Datei) und in **Menüleiste** sowie **Einstellungen › Anwendungen** angezeigt. **Bestehende Konfigurationen:** ältere `registered-applications-menu.json` ohne Feld `iconContentHash` bleiben gültig (`nil`); der Launcher versucht die Icons beim nächsten Start automatisch nachzuladen — kein manuelles Editieren der JSON nötig.
+Registrierte Anwendungen: optional wird unter dem **Broker-Stamm** (aus `broker` bzw. der Web-Definitions-URL) **`Icon.png`** geladen, als **SHA256-Dateiname** unter `~/Library/Application Support/bizolution/enventa Trade ERP Launcher/RegisteredAppIcons/` gespeichert (gleiche Grafik = eine Datei) und in **Menüleiste** sowie **Einstellungen › Anwendungen** angezeigt — **nur** bei Einträgen vom Typ **Client-Anwendung**. Einträge vom Typ **Weblink** (`targetKind` **`web`** in der JSON) öffnen die gespeicherte **http(s)-URL unverändert** im **Standardbrowser** (`NSWorkspace.open`) und nutzen das **Globus**-Symbol statt Broker-Icon. **Bestehende Konfigurationen:** ältere `registered-applications-menu.json` ohne `iconContentHash` bzw. ohne `targetKind` bleiben gültig (`nil` bzw. Verhalten wie **Client**); Icons werden bei Bedarf nachgeladen.
 
 ## Einstellungen › Anwendungen (technisch)
 
 Die Oberfläche nutzt kurze Alltagstexte; hier die gültigen Kürzel laut Code:
 
-- **Lokaler Pfad** zu einer **`.fsclient`**-JSON-Datei.
-- **http(s)-URL** zu einer Server-Definitionsseite (`…/api/fsclient?…` oder `…/api/jnlp?…`; `jnlp`-Pfade werden intern auf `fsclient` umgeschrieben).
-- **`fsclientlauncher:launch?…`** sowie die Brücke **`fsclientlauncher:jnlp?url=…`** (kodierte http(s)-Zieladresse).
-- Beim Speichern einer passenden http(s)-Definitions-URL kann der Launcher anbieten, sie in **`fsclientlauncher:launch?…`** umzuwandeln (analog zu typischen Server-Weiterleitungen).
+- **Typ Client-Anwendung:** **Lokaler Pfad** zu einer **`.fsclient`**-JSON-Datei; **http(s)-URL** zu einer Server-Definitionsseite (`…/api/fsclient?…` oder `…/api/jnlp?…`; `jnlp`-Pfade werden intern auf `fsclient` umgeschrieben); **`fsclientlauncher:launch?…`** sowie **`fsclientlauncher:jnlp?url=…`**. Beim Speichern einer passenden http(s)-Definitions-URL kann der Launcher anbieten, sie in **`fsclientlauncher:launch?…`** umzuwandeln.
+- **Typ Weblink:** beliebige **http(s)-URL** mit Host (kein `file:`/`javascript:`/…); Start über **Standardbrowser**, URL wird **nicht** in den Launcher-Definitionsfluss umgebogen.
 
 ## macOS-spezifische Abweichungen vom Windows-Original
 

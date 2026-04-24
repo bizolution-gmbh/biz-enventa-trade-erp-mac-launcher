@@ -91,9 +91,13 @@ final class MenuBarExtraController: NSObject {
         for rec in store.file.shortcuts {
             let mi = NSMenuItem(title: rec.displayName, action: #selector(openRegisteredApplication(_:)), keyEquivalent: "")
             mi.target = self
-            mi.representedObject = rec.launchSourceForRunner as NSString
-            if let h = rec.iconContentHash,
-               let custom = RegisteredApplicationIconCache.nsImage(contentHashHex: h, pixelSide: 16) {
+            mi.representedObject = RegisteredApplicationsMenuShortcutToken.encode(recordId: rec.id) as NSString
+            if rec.targetKind == .webBookmark {
+                let sym = NSImage(systemSymbolName: "globe", accessibilityDescription: "Weblink")
+                let cfg = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+                mi.image = sym?.withSymbolConfiguration(cfg)
+            } else if let h = rec.iconContentHash,
+                      let custom = RegisteredApplicationIconCache.nsImage(contentHashHex: h, pixelSide: 16) {
                 mi.image = custom
             } else {
                 mi.image = javaAppMenuIcon
@@ -147,13 +151,14 @@ final class MenuBarExtraController: NSObject {
         }
         let store = RegisteredApplicationsStore.shared
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 420),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
         window.title = "Anwendung hinzufügen"
         window.isReleasedWhenClosed = false
+        window.contentMinSize = NSSize(width: 560, height: 360)
         let del = AddApplicationWindowDelegate { [weak self] in
             self?.addApplicationWindow = nil
             self?.addApplicationWindowDelegate = nil
@@ -172,10 +177,11 @@ final class MenuBarExtraController: NSObject {
     }
 
     @objc private func openRegisteredApplication(_ sender: Any?) {
-        guard let item = sender as? NSMenuItem,
-              let path = item.representedObject as? String
-        else { return }
-        AppDelegate.shared?.launchRegisteredApplicationFromMenuBar(path: path)
+        guard let item = sender as? NSMenuItem else { return }
+        if let recordId = RegisteredApplicationsMenuShortcutToken.decode(item.representedObject) {
+            AppDelegate.shared?.launchRegisteredApplication(recordId: recordId)
+            return
+        }
     }
 
     @objc private func quitApp(_ sender: Any?) {

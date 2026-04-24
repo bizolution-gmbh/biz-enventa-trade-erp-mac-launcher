@@ -1,6 +1,29 @@
 import Darwin
 import Foundation
 
+/// Art eines Eintrags im Menü „Anwendungen“ / in den Einstellungen.
+enum RegisteredApplicationTargetKind: String, Codable, Equatable, Hashable, Sendable {
+    /// Broker-Definition, lokale `.fsclient` oder `fsclientlauncher:` — bestehende Launcher-Startlogik.
+    case launcher = "launcher"
+    /// Beliebige **http(s)-URL**, unverändert im **Standardbrowser** (`NSWorkspace.open`).
+    case webBookmark = "web"
+}
+
+/// Stabiles `NSMenuItem.representedObject` für Tray-Einträge (nicht mit Dateipfaden verwechseln).
+enum RegisteredApplicationsMenuShortcutToken {
+    static let prefix = "registeredShortcut:"
+
+    static func encode(recordId: UUID) -> String {
+        prefix + recordId.uuidString
+    }
+
+    static func decode(_ object: Any?) -> UUID? {
+        guard let s = object as? String, s.hasPrefix(prefix) else { return nil }
+        let idPart = String(s.dropFirst(prefix.count))
+        return UUID(uuidString: idPart)
+    }
+}
+
 extension Notification.Name {
     /// Wird nach dem Speichern von `registered-applications-menu.json` gesendet (Menüleiste neu laden).
     static let registeredApplicationsMenuDidChange = Notification.Name("de.bizolution.trade-erp-launcher.registeredApplicationsMenuDidChange")
@@ -18,6 +41,48 @@ struct RegisteredApplicationRecord: Codable, Identifiable, Equatable, Hashable {
     ///
     /// **Migration:** Fehlt der Schlüssel in älteren `registered-applications-menu.json`, bleibt der Wert `nil` — `enqueueMissingBrokerIconFetches()` lädt Icons beim nächsten Start nach.
     var iconContentHash: String?
+    /// **Migration:** Fehlt der Schlüssel, gilt `.launcher` (bisheriges Verhalten).
+    var targetKind: RegisteredApplicationTargetKind
+
+    enum CodingKeys: String, CodingKey {
+        case id, path, importedFilePath, displayName, iconContentHash, targetKind
+    }
+
+    init(
+        id: UUID,
+        path: String,
+        importedFilePath: String?,
+        displayName: String,
+        iconContentHash: String?,
+        targetKind: RegisteredApplicationTargetKind = .launcher
+    ) {
+        self.id = id
+        self.path = path
+        self.importedFilePath = importedFilePath
+        self.displayName = displayName
+        self.iconContentHash = iconContentHash
+        self.targetKind = targetKind
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        path = try c.decode(String.self, forKey: .path)
+        importedFilePath = try c.decodeIfPresent(String.self, forKey: .importedFilePath)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        iconContentHash = try c.decodeIfPresent(String.self, forKey: .iconContentHash)
+        targetKind = try c.decodeIfPresent(RegisteredApplicationTargetKind.self, forKey: .targetKind) ?? .launcher
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(path, forKey: .path)
+        try c.encodeIfPresent(importedFilePath, forKey: .importedFilePath)
+        try c.encode(displayName, forKey: .displayName)
+        try c.encodeIfPresent(iconContentHash, forKey: .iconContentHash)
+        try c.encode(targetKind, forKey: .targetKind)
+    }
 
     /// Argument für `LaunchConfiguration.load`: Bei **http(s)-Kürzeln** immer die gespeicherte URL (erneuter Download) — eine alte `importedFilePath`-Kopie darf den Start nicht kapern. Sonst: Import-Datei, falls lesbar, sonst `path`.
     var launchSourceForRunner: String {
@@ -179,6 +244,27 @@ final class RegisteredApplicationsStore: ObservableObject {
         return lower.hasSuffix(".fsclient")
     }
 
+    /// Nur **http** / **https** mit nicht-leerem Host — Weblink im Standardbrowser (kein `file:`, `javascript:` usw.).
+    nonisolated static func isValidWebBookmarkURL(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return false }
+        if let parts = URLComponents(string: t),
+           let scheme = parts.scheme?.lowercased(),
+           scheme == "http" || scheme == "https",
+           let host = parts.host,
+           !host.isEmpty {
+            return true
+        }
+        if let u = URL(string: t),
+           let scheme = u.scheme?.lowercased(),
+           scheme == "http" || scheme == "https",
+           let host = u.host,
+           !host.isEmpty {
+            return true
+        }
+        return false
+    }
+
     var menuBarExtraEnabled: Bool {
         file.menuBarExtraEnabled
     }
@@ -202,6 +288,7 @@ final class RegisteredApplicationsStore: ObservableObject {
         let importStd = importedFilePath.map { ($0 as NSString).standardizingPath }
         var f = file
         let idx = f.shortcuts.firstIndex { r in
+            guard r.targetKind == .launcher else { return false }
             if Self.normalizeShortcutTarget(r.path) == openedNorm { return true }
             if let imp = importStd,
                let rawImp = r.importedFilePath,
@@ -222,6 +309,7 @@ final class RegisteredApplicationsStore: ObservableObject {
             if oldNorm != newNorm {
                 f.shortcuts[idx].iconContentHash = nil
             }
+            f.shortcuts[idx].targetKind = .launcher
             f.shortcuts[idx].path = display
             f.shortcuts[idx].importedFilePath = importStd
             f.shortcuts[idx].displayName = defaultDisplayName
@@ -239,7 +327,8 @@ final class RegisteredApplicationsStore: ObservableObject {
                     path: display,
                     importedFilePath: importStd,
                     displayName: defaultDisplayName,
-                    iconContentHash: nil
+                    iconContentHash: nil,
+                    targetKind: .launcher
                 )
             )
             file = f
@@ -250,25 +339,34 @@ final class RegisteredApplicationsStore: ObservableObject {
         }
     }
 
-    func updateRecord(id: UUID, displayName: String, path: String? = nil) {
+    func updateRecord(id: UUID, displayName: String, path: String? = nil, targetKind: RegisteredApplicationTargetKind) {
         var f = file
         guard let idx = f.shortcuts.firstIndex(where: { $0.id == id }) else { return }
         let old = f.shortcuts[idx]
         f.shortcuts[idx].displayName = displayName
-        var pathChanged = false
+        var needsIconRequeue = false
+        if targetKind != old.targetKind {
+            f.shortcuts[idx].targetKind = targetKind
+            f.shortcuts[idx].iconContentHash = nil
+            needsIconRequeue = true
+            if targetKind == .webBookmark {
+                Self.deleteImportedFileIfOwned(old.importedFilePath)
+                f.shortcuts[idx].importedFilePath = nil
+            }
+        }
         if let path {
             let norm = Self.normalizeShortcutTarget(path)
             if norm != Self.normalizeShortcutTarget(old.path) {
-                pathChanged = true
                 Self.deleteImportedFileIfOwned(old.importedFilePath)
                 f.shortcuts[idx].importedFilePath = nil
                 f.shortcuts[idx].iconContentHash = nil
+                f.shortcuts[idx].path = norm
+                needsIconRequeue = true
             }
-            f.shortcuts[idx].path = norm
         }
         file = f
         saveToDisk()
-        if pathChanged, Self.recordNeedsBrokerIconFetch(f.shortcuts.first(where: { $0.id == id })) {
+        if needsIconRequeue, Self.recordNeedsBrokerIconFetch(f.shortcuts.first(where: { $0.id == id })) {
             enqueueBrokerIconFetch(for: id)
         }
     }
@@ -285,15 +383,24 @@ final class RegisteredApplicationsStore: ObservableObject {
     /// Legt einen **neuen** Eintrag an. `upsertAfterSuccessfulLaunch` ist nur für „nach erfolgreichem Start“ gedacht —
     /// bei gleicher URL/Pfad wie ein bestehender Eintrag passiert hier **kein** Überschreiben.
     @discardableResult
-    func addRecord(path: String, displayName: String) -> Bool {
+    func addRecord(path: String, displayName: String, targetKind: RegisteredApplicationTargetKind = .launcher) -> Bool {
         let norm = Self.normalizeShortcutTarget(path)
-        if file.shortcuts.contains(where: { Self.normalizeShortcutTarget($0.path) == norm }) {
+        if file.shortcuts.contains(where: {
+            Self.normalizeShortcutTarget($0.path) == norm && $0.targetKind == targetKind
+        }) {
             return false
         }
         let newId = UUID()
         var f = file
         f.shortcuts.append(
-            RegisteredApplicationRecord(id: newId, path: norm, importedFilePath: nil, displayName: displayName, iconContentHash: nil)
+            RegisteredApplicationRecord(
+                id: newId,
+                path: norm,
+                importedFilePath: nil,
+                displayName: displayName,
+                iconContentHash: nil,
+                targetKind: targetKind
+            )
         )
         file = f
         saveToDisk()
@@ -349,6 +456,7 @@ final class RegisteredApplicationsStore: ObservableObject {
     /// `true`, wenn ein Broker-Stamm ermittelbar ist und noch kein gültiges Icon im Cache liegt.
     private static func recordNeedsBrokerIconFetch(_ rec: RegisteredApplicationRecord?) -> Bool {
         guard let rec else { return false }
+        if rec.targetKind != .launcher { return false }
         guard LaunchConfiguration.brokerBaseStringForApplicationIcon(
             shortcutTarget: rec.path,
             backingFilePath: rec.importedFilePath

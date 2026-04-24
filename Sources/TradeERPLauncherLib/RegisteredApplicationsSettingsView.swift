@@ -6,11 +6,17 @@ struct RegisteredApplicationsSettingsView: View {
 
     @State private var sheet: RegisteredApplicationSheetState?
 
+    /// Gleich breite Spalten — Kacheln füllen jeweils eine Zelle (`maxWidth: .infinity`).
     private var gridColumns: [GridItem] {
         [
-            GridItem(.adaptive(minimum: 148, maximum: 280), spacing: 10, alignment: .top),
+            GridItem(.flexible(minimum: 120), spacing: 10),
+            GridItem(.flexible(minimum: 120), spacing: 10),
+            GridItem(.flexible(minimum: 120), spacing: 10),
         ]
     }
+
+    /// Feste Kachelhöhe: Titel (max. 2 Zeilen) + URL-Zeile + Icon — alle Kacheln gleich groß.
+    private static let shortcutTileHeight: CGFloat = 134
 
     var body: some View {
         Form {
@@ -43,10 +49,12 @@ struct RegisteredApplicationsSettingsView: View {
             }
 
             Section {
-                Text("Neue Einträge: Adresse aus dem Browser (beginnt mit http…) einfügen oder eine .fsclient-Datei wählen. Der Titel kann frei vergeben werden.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(
+                    "Neue Einträge: Typ „Client-Anwendung“ für Broker- oder Definitions-URLs bzw. .fsclient-Datei — „Weblink“ für eine beliebige http(s)-Adresse, die unverändert im Standardbrowser geöffnet wird. Der Titel kann frei vergeben werden."
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)
@@ -61,8 +69,15 @@ struct RegisteredApplicationsSettingsView: View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 8) {
                 Group {
-                    if let h = rec.iconContentHash,
-                       let ns = RegisteredApplicationIconCache.nsImage(contentHashHex: h, pixelSide: 40) {
+                    if rec.targetKind == .webBookmark {
+                        Image(systemName: "globe")
+                            .symbolRenderingMode(.hierarchical)
+                            .font(.system(size: 30))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 40, height: 40)
+                            .accessibilityLabel("Weblink")
+                    } else if let h = rec.iconContentHash,
+                              let ns = RegisteredApplicationIconCache.nsImage(contentHashHex: h, pixelSide: 40) {
                         Image(nsImage: ns)
                             .resizable()
                             .interpolation(.high)
@@ -87,7 +102,7 @@ struct RegisteredApplicationsSettingsView: View {
                     .font(.body.weight(.semibold))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 44, maxHeight: 44, alignment: .topLeading)
                     .help(rec.displayName)
                 Text(rec.path)
                     .font(.caption2)
@@ -95,12 +110,12 @@ struct RegisteredApplicationsSettingsView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 14, maxHeight: 14, alignment: .leading)
                     .textSelection(.enabled)
                     .help(rec.path)
             }
             .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 86, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: Self.shortcutTileHeight, maxHeight: Self.shortcutTileHeight, alignment: .topLeading)
             .background {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(.background)
@@ -130,5 +145,6 @@ struct RegisteredApplicationsSettingsView: View {
             .help("Eintrag löschen")
             .accessibilityLabel("Löschen")
         }
+        .frame(maxWidth: .infinity)
     }
 }
