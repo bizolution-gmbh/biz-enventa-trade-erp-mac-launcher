@@ -101,6 +101,8 @@ swiftc -O Sources/TradeERPLauncherLib/*.swift -o TradeERPLauncher \
 
 Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bundle übernimmt; sonst manuell nach `dist/…/Contents/Resources/` kopieren. App signieren/notarisieren, falls ausgeliefert wird.
 
+**Release (Version, Git-Tag, GitHub):** `CHANGELOG.md` Abschnitt **`[Unreleased]`** mit Stichpunkten füllen, dann z. B. `./Scripts/release.sh --mac` (lokal: Commit + annotierter Tag `v4.8.0.x`) oder mit **`--push`** zusätzlich `git push` und **`gh release create`** (Fall B). Details und Optionen **`--vendor`** / **`--set`** im Kopfkommentar von `Scripts/release.sh`. Voraussetzung für `--push`: `gh auth login`.
+
 ## Installation
 
 1. **App bauen** (siehe oben): z. B. `./Scripts/build_app.sh` → Ergebnis: `dist/enventa Trade ERP Launcher.app`.

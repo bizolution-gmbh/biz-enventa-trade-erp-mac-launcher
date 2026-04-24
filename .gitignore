@@ -5,6 +5,7 @@
 .cursor/rules/*
 !.cursor/rules/macos-apple-icons.mdc
 !.cursor/rules/trade-erp-launcher-kurz.mdc
+!.cursor/rules/changelog-release.mdc
 .build/
 dist/
 .swiftpm/
