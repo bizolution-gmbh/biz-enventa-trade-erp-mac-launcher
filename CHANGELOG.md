@@ -19,6 +19,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Changed
 
+- `LICENSE` im GitHub-Standardformat für Erkennung als **GPL-3.0**; Zusatztexte in [NOTICE](NOTICE); Badge in README.
 - Dokumentation: `README.md` als Einstieg (Installation, Nutzung, ERP-Voraussetzungen); technische Referenz in `docs/Entwicklung.md`.
 
 ### Fixed

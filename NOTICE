@@ -1,0 +1,9 @@
+# Hinweise zur Software (enventa Trade ERP Launcher)
+
+**Lizenz des Quellcodes:** [GNU General Public License v3.0](LICENSE) — Copyright © 2026 BIZOLUTION GmbH.
+
+Der Launcher wird von der BIZOLUTION GmbH als Vertriebs- und Technologiepartner bereitgestellt. Er ist **kein** offizielles Produkt der enventa technical trade solutions GmbH (enventa Group).
+
+**Nutzung:** freiwilliger Download/Installation, ohne Kauf und ohne Nutzungspflicht. Keine zugesagte Gewährleistung oder Support — siehe [README.md](README.md) und die GPL.
+
+**Drittanbieter** (z. B. Java-Laufzeiten): [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

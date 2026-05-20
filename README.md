@@ -1,5 +1,9 @@
 # enventa Trade ERP Launcher (macOS)
 
+[![License: GPL v3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+**Lizenz:** [GNU General Public License v3.0](LICENSE) (GPL-3.0) — Copyright © 2026 BIZOLUTION GmbH. Zusätzliche Hinweise: [NOTICE](NOTICE).
+
 **enventa Trade ERP Launcher** für macOS ist ein Launcher für das ERP **enventa Trade ERP** des Herstellers **enventa Technical Trade Solutions GmbH**. Bereitgestellt und entwickelt wird er von der **BIZOLUTION GmbH** als **Vertriebs- und Technologiepartner** der **enventa Technical Trade Solutions GmbH**, damit **enventa Trade ERP** auf dem Mac gestartet werden kann. Der Launcher ist **kein** offizielles Produkt des ERP-Herstellers — siehe Hinweis in der App.
 
 Der Launcher startet den **Java-ERP-Client** über Broker-URLs oder gespeicherte Konfigurationen — vergleichbar mit dem Windows-Programm **FS Client Launcher**.
@@ -8,7 +12,7 @@ Der Launcher startet den **Java-ERP-Client** über Broker-URLs oder gespeicherte
 
 | Thema | Datei |
 |--------|--------|
-| **Lizenz** (eigener Quellcode) | [GNU GPL v3.0](LICENSE) |
+| **Lizenz** (eigener Quellcode) | [GNU GPL v3.0](LICENSE), [NOTICE](NOTICE) |
 | Entwicklung, Build, JDK, `.fsclient`, Sicherheit | [docs/Entwicklung.md](docs/Entwicklung.md) |
 | Drittanbieter & Lizenzen | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 | Änderungshistorie / Release | [CHANGELOG.md](CHANGELOG.md) |
