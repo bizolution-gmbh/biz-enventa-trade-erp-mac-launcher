@@ -11,6 +11,17 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+
+## [4.8.0.1] - 2026-05-20
+
+### Added
+
 - **Erstes Release** des **enventa Trade ERP Launcher** für macOS — inoffizielles Pendant zum Windows-**FS Client Launcher**, bereitgestellt von der **BIZOLUTION GmbH** (kein offizielles Produkt der enventa Group). Auslieferung als **DMG** (nicht signiert/notarisiert); Installation siehe [README.md](README.md).
 - Start des ERP-Java-Clients über **Broker-URLs**, **`.fsclient`**-JSON, URL-Schema **`fsclientlauncher:…`** sowie gespeicherte **registrierte Anwendungen** in der **Menüleiste**.
 - Registrierte Anwendungen: Typ **Client-Anwendung** (Broker-/Definitions-URL, z. B. per „Download Jnlp“-Link aus dem Browser) und Typ **Weblink** (beliebige http(s)-URL im **Standardbrowser**); optional **Broker-Icons** in Menüleiste und Einstellungen.
@@ -25,3 +36,4 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 - Launcher-Produkt und Datenpfade: **enventa Trade ERP Launcher**, Ablage unter **bizolution**; Bizolution-Branding in der Oberfläche (ERP-Client behält eigene Dock-Icons).
 - Release-Prozess: `Scripts/release.sh` erzeugt Version/CHANGELOG/Git-Tag, baut per `Scripts/build_app.sh` eine **DMG** und lädt sie bei `--push` auf **GitHub Releases** hoch (`--no-dmg` zum Überspringen).
+
