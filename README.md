@@ -8,9 +8,14 @@ Der Launcher startet den **Java-ERP-Client** über Broker-URLs oder gespeicherte
 
 | Thema | Datei |
 |--------|--------|
+| **Lizenz** (eigener Quellcode) | [GNU GPL v3.0](LICENSE) |
 | Entwicklung, Build, JDK, `.fsclient`, Sicherheit | [docs/Entwicklung.md](docs/Entwicklung.md) |
 | Drittanbieter & Lizenzen | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 | Änderungshistorie / Release | [CHANGELOG.md](CHANGELOG.md) |
+
+## Lizenz
+
+Der Quellcode dieses Launchers steht unter der **[GNU General Public License v3.0](LICENSE)** (Copyright © 2026 BIZOLUTION GmbH). Die Software wird **freiwillig** bereitgestellt (Download/Installation **ohne Kauf**, **ohne Nutzungspflicht**). Es wird **keine Gewährleistung** und **kein Support** zugesagt, sofern nicht gesondert vereinbart — siehe auch die Haftungs- und Gewährleistungsregelungen in der GPL. Mitgelieferte oder nachgeladene **Drittanbieter** (z. B. Java-Laufzeiten) haben **eigene** Lizenzen: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Voraussetzungen (enventa Trade ERP auf dem Mac)
 
