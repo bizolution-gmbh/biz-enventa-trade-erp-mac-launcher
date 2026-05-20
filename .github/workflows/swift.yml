@@ -1,0 +1,25 @@
+# SwiftPM: Release-Build und Unit-Tests (macOS-only).
+# Auslieferung (.app/DMG) bleibt lokal: Scripts/build_app.sh — siehe docs/Entwicklung.md
+name: Swift
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode als aktives Developer-Verzeichnis
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build (Release)
+        run: swift build -c release -v
+
+      - name: Tests (Release)
+        run: swift test -c release -v

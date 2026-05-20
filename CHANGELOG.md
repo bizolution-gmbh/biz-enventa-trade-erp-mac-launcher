@@ -11,6 +11,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Added
 
+- GitHub Actions: Workflow **Swift** (`macos-latest`, `swift build`/`swift test` Release) bei Push/PR auf `main`.
 - Registrierte Anwendungen: Eintragstyp **Weblink** — beliebige **http(s)-URL** wird unverändert im **Standardbrowser** geöffnet; **Globus**-Symbol in Menüleiste und Einstellungen; JSON-Feld `targetKind` (`launcher` oder `web`).
 - `Scripts/release.sh` (u. a. `--mac`, `--vendor`, `--set`, optional `--push` mit `gh release create`) und `Scripts/changelog_promote.py`; Projekt-`CHANGELOG.md`.
 - Cursor-Regel: vor Release den Abschnitt `[Unreleased]` mit Stichpunkten füllen.
