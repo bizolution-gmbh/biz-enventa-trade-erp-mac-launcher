@@ -196,12 +196,19 @@ REL_TITLE="enventa Trade ERP Launcher ${next_short}"
 if [[ "$DO_PUSH" -eq 1 ]]; then
   git -C "$ROOT" push origin "$BRANCH"
   git -C "$ROOT" push origin "$TAG"
-  gh_repo=()
-  [[ -n "${GH_REPO:-}" ]] && gh_repo=(--repo "$GH_REPO")
-  gh release create "$TAG" --title "$REL_TITLE" --notes-file "$NOTES_PRE" --latest "${gh_repo[@]}"
-  if [[ "$DO_BUILD_DMG" -eq 1 ]]; then
-    echo "==> DMG zu GitHub-Release hochladen"
-    gh release upload "$TAG" "$DMG" --clobber "${gh_repo[@]}"
+  # Kein leeres Array unter "${arr[@]}" mit set -u (macOS-/bin/bash 3.2).
+  if [[ -n "${GH_REPO:-}" ]]; then
+    gh release create "$TAG" --title "$REL_TITLE" --notes-file "$NOTES_PRE" --latest --repo "$GH_REPO"
+    if [[ "$DO_BUILD_DMG" -eq 1 ]]; then
+      echo "==> DMG zu GitHub-Release hochladen"
+      gh release upload "$TAG" "$DMG" --clobber --repo "$GH_REPO"
+    fi
+  else
+    gh release create "$TAG" --title "$REL_TITLE" --notes-file "$NOTES_PRE" --latest
+    if [[ "$DO_BUILD_DMG" -eq 1 ]]; then
+      echo "==> DMG zu GitHub-Release hochladen"
+      gh release upload "$TAG" "$DMG" --clobber
+    fi
   fi
   rm -f "$NOTES_PRE"
   echo "==> Fertig: Push + GitHub-Release $TAG"
