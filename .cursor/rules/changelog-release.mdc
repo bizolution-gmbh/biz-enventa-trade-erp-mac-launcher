@@ -10,4 +10,4 @@ globs: "CHANGELOG.md,Scripts/release.sh,Scripts/changelog_promote.py,Scripts/Inf
 - **Inhalt:** Nutzer- und betriebsrelevante Änderungen (Features, Fixes, Breaking Changes); interne Refactorings nur wenn sie Auswirkungen haben.
 - **Nach dem Release:** Das Skript legt einen frischen **`[Unreleased]`**-Block an — dort wieder für das **nächste** Release sammeln.
 - **Versionen:** Marketing-String `4.8.*.*` in `Scripts/Info.plist` (`CFBundleShortVersionString`); `CFBundleVersion` monoton — siehe Kopfkommentar in `Scripts/release.sh` und Einleitung in `CHANGELOG.md`.
-- **GitHub:** Mit `./Scripts/release.sh … --push` entsteht ein **Release** (`gh`); ohne `--push` lokal committen/taggen und Push sowie `gh release create` manuell nachziehen.
+- **GitHub:** Mit `./Scripts/release.sh … --push` entsteht ein **Release** (`gh`) inkl. **DMG-Upload** (`build_app.sh` vor dem Commit); ohne `--push` lokal committen/taggen; Upload-Befehl gibt das Skript aus. **`--no-dmg`** überspringt Build/Upload.

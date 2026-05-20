@@ -11,18 +11,17 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Added
 
-- Projekt-Lizenz [LICENSE](LICENSE): **GNU GPL v3.0** (BIZOLUTION GmbH); Drittanbieter-Hinweise ergänzt.
-- GitHub Actions: Workflow **Swift** (`macos-latest`, `swift build`/`swift test` Release) bei Push/PR auf `main`.
-- Registrierte Anwendungen: Eintragstyp **Weblink** — beliebige **http(s)-URL** wird unverändert im **Standardbrowser** geöffnet; **Globus**-Symbol in Menüleiste und Einstellungen; JSON-Feld `targetKind` (`launcher` oder `web`).
-- `Scripts/release.sh` (u. a. `--mac`, `--vendor`, `--set`, optional `--push` mit `gh release create`) und `Scripts/changelog_promote.py`; Projekt-`CHANGELOG.md`.
-- Cursor-Regel: vor Release den Abschnitt `[Unreleased]` mit Stichpunkten füllen.
+- **Erstes Release** des **enventa Trade ERP Launcher** für macOS — inoffizielles Pendant zum Windows-**FS Client Launcher**, bereitgestellt von der **BIZOLUTION GmbH** (kein offizielles Produkt der enventa Group). Auslieferung als **DMG** (nicht signiert/notarisiert); Installation siehe [README.md](README.md).
+- Start des ERP-Java-Clients über **Broker-URLs**, **`.fsclient`**-JSON, URL-Schema **`fsclientlauncher:…`** sowie gespeicherte **registrierte Anwendungen** in der **Menüleiste**.
+- Registrierte Anwendungen: Typ **Client-Anwendung** (Broker-/Definitions-URL, z. B. per „Download Jnlp“-Link aus dem Browser) und Typ **Weblink** (beliebige http(s)-URL im **Standardbrowser**); optional **Broker-Icons** in Menüleiste und Einstellungen.
+- **Java 8 / 11 / 21** je nach Broker; bei Bedarf **Download von Java 8 mit JavaFX** (Azul Zulu) in die Launcher-Daten unter Application Support.
+- **Einstellungen:** JVM-Argumente (pro erkannter Java-Version), Java-Laufzeitumgebungen, registrierte Anwendungen, Tab **Über** mit Versions- und Anbieterhinweis.
+- Einmalige **Migration** älterer Launcher-Daten nach `~/Library/Application Support/bizolution/enventa Trade ERP Launcher/` (und Caches unter `bizolution/`).
+- Dokumentation: [README.md](README.md) (Installation inkl. Quarantäne, Nutzung, ERP-Voraussetzungen), [docs/Entwicklung.md](docs/Entwicklung.md), [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- Lizenz des Quellcodes: **GNU GPL v3.0** ([LICENSE](LICENSE)).
+- GitHub Actions: Workflow **Swift** (Release-Build und Tests auf `macos-latest`).
 
 ### Changed
 
-- `LICENSE` im GitHub-Standardformat für Erkennung als **GPL-3.0**; Zusatztexte in [NOTICE](NOTICE); Badge in README.
-- Dokumentation: `README.md` als Einstieg (Installation, Nutzung, ERP-Voraussetzungen); technische Referenz in `docs/Entwicklung.md`.
-
-### Fixed
-
-### Removed
-
+- Launcher-Produkt und Datenpfade: **enventa Trade ERP Launcher**, Ablage unter **bizolution**; Bizolution-Branding in der Oberfläche (ERP-Client behält eigene Dock-Icons).
+- Release-Prozess: `Scripts/release.sh` erzeugt Version/CHANGELOG/Git-Tag, baut per `Scripts/build_app.sh` eine **DMG** und lädt sie bei `--push` auf **GitHub Releases** hoch (`--no-dmg` zum Überspringen).

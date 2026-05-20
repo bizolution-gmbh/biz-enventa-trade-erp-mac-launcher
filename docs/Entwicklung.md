@@ -107,7 +107,7 @@ Optional: JDKs unter `BundledJDKs/` bereitlegen, damit `build_app.sh` sie ins Bu
 
 **Drittanbieter & Lizenzen:** Java-8-Download (**Azul Zulu** + JavaFX) — vor dem Download zeigt die App einen Hinweis inkl. Verweis auf [Azul — Third-party licenses](https://docs.azul.com/core/tpls/); entpackte JDKs enthalten eigene Lizenzdateien. Mitgelieferte **JDK 11/21** (z. B. Temurin): siehe **[Scripts/JDK_BUNDLE.md](../Scripts/JDK_BUNDLE.md)**. Gesamtüberblick: **[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)**.
 
-**Release (Version, Git-Tag, GitHub):** `CHANGELOG.md` Abschnitt **`[Unreleased]`** mit Stichpunkten füllen, dann z. B. `./Scripts/release.sh --mac` (lokal: Commit + annotierter Tag `v4.8.0.x`) oder mit **`--push`** zusätzlich `git push` und **`gh release create`** (Fall B). Details und Optionen **`--vendor`** / **`--set`** im Kopfkommentar von `Scripts/release.sh`. Voraussetzung für `--push`: `gh auth login`.
+**Release (Version, Git-Tag, GitHub, DMG):** `CHANGELOG.md` Abschnitt **`[Unreleased]`** mit Stichpunkten füllen, dann z. B. `./Scripts/release.sh --mac` (baut **`dist/enventa-trade-erp-launcher-<Version>.dmg`** via `build_app.sh`, Commit + Tag) oder **`./Scripts/release.sh --mac --push`** zusätzlich mit `git push`, **`gh release create`** und **DMG-Upload**. Ohne DMG: **`--no-dmg`**. Optionen **`--vendor`** / **`--set`**: `Scripts/release.sh`. Voraussetzung für `--push`: `gh auth login`.
 
 ## Eine `.fsclient`-Datei ausführen
 
