@@ -17,8 +17,9 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Changed
 
+- Dokumentation: `README.md` als Einstieg (Installation, Nutzung, ERP-Voraussetzungen); technische Referenz in `docs/Entwicklung.md`.
+
 ### Fixed
 
 ### Removed
 
-<!-- Vor `./Scripts/release.sh`: [Unreleased] wie oben pflegen (mindestens ein „- …“). -->
