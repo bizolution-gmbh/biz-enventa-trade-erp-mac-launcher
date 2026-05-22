@@ -206,6 +206,7 @@ enum LaunchCoordinator {
     ) throws {
         var vm: [String] = []
         vm.append(contentsOf: brokerInfo.JavaProperties ?? [])
+        stripCommandLineHijackingArguments(&vm, log: log)
         stripDisplayConsoleSystemProperties(&vm)
         stripTraceLevelSystemProperties(&vm)
         vm.append("-D\(LaunchParameterKey.displayConsole)=\(settings.DisplayConsole ? "true" : "false")")
@@ -390,6 +391,37 @@ enum LaunchCoordinator {
                 || t.hasPrefix("-Dtracelevel=")
                 || t.hasPrefix("-DtraceLevel=")
         }
+    }
+
+    /// Defense in depth: Broker-Argumente, die die Launcher-Konfiguration aushebeln würden, vor dem JVM-Aufruf entfernen.
+    /// Der Launcher setzt **explizit** `-cp`, ggf. `-jar` und `MainClass` selbst (siehe `startJavaClient`); zusätzlich aufgenommene
+    /// Argumente derselben Art würden die Reihenfolge sprengen oder Code aus anderen Quellen laden (`-javaagent`, `-agentlib`).
+    private static func stripCommandLineHijackingArguments(_ vm: inout [String], log: (String) -> Void) {
+        let dangerousExactPrefixes = ["-cp", "-classpath", "-jar"]
+        let dangerousFlagPrefixes = ["-javaagent:", "-agentlib:", "-agentpath:"]
+        var stripped: [String] = []
+        var index = 0
+        while index < vm.count {
+            let token = vm[index].trimmingCharacters(in: .whitespaces)
+            if dangerousExactPrefixes.contains(token) {
+                stripped.append(token)
+                if index + 1 < vm.count {
+                    stripped.append(vm[index + 1])
+                    vm.removeSubrange(index ... (index + 1))
+                } else {
+                    vm.remove(at: index)
+                }
+                continue
+            }
+            if dangerousFlagPrefixes.contains(where: { token.hasPrefix($0) }) {
+                stripped.append(token)
+                vm.remove(at: index)
+                continue
+            }
+            index += 1
+        }
+        guard !stripped.isEmpty else { return }
+        log("Hinweis: Launcher hat \(stripped.count) Broker-JVM-Argument(e) ignoriert (kollidieren mit Launcher-Setup): \(stripped.joined(separator: " "))\n")
     }
 
     fileprivate static func drainPipeRemainder(pipe: Pipe, log: (String) -> Void) {
