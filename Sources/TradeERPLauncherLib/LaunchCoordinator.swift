@@ -304,39 +304,71 @@ enum LaunchCoordinator {
                 log: log
             )
         } else {
-            let p = Process()
-            p.executableURL = runtime.javaExecutable
-            p.arguments = args
-            p.currentDirectoryURL = jarDir
-            p.environment = env
-
-            let out = Pipe()
-            let err = Pipe()
-            p.standardOutput = out
-            p.standardError = err
-
-            try p.run()
-            out.fileHandleForReading.readabilityHandler = { h in
-                let d = h.availableData
-                if d.isEmpty { return }
-                if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
-            }
-            err.fileHandleForReading.readabilityHandler = { h in
-                let d = h.availableData
-                if d.isEmpty { return }
-                if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
-            }
-            let showConsole = settings.DisplayConsole
-            // `Process` + Pipes bis zum JVM-Ende im Registry halten; Aufräumen in `terminationHandler` auf dem Main Thread
-            // (kein `waitUntilExit` in einem `Task.detached`, damit der Menüleisten-Launcher nicht mit beendet wird).
-            DetachedJavaProcessRegistry.shared.addConsole(
-                process: p,
-                out: out,
-                err: err,
-                showConsole: showConsole,
+            try startJavaClientWithConsolePipes(
+                executable: runtime.javaExecutable,
+                javaArguments: args,
+                jarDir: jarDir,
+                environment: env,
+                showConsole: settings.DisplayConsole,
                 log: log
             )
         }
+    }
+
+    /// Konsolen-Pfad: identische Lebensdauer-Behandlung wie `startJavaClientDetached`, **inkl.** Handshake-Wait —
+    /// schlägt der JVM-Start sofort fehl (z. B. ungültiges `-D`-Argument), wirft die Funktion `LaunchError.clientExit`,
+    /// statt fälschlich Erfolg zu signalisieren.
+    private static func startJavaClientWithConsolePipes(
+        executable: URL,
+        javaArguments: [String],
+        jarDir: URL,
+        environment: [String: String],
+        showConsole: Bool,
+        log: @escaping (String) -> Void
+    ) throws {
+        let p = Process()
+        p.executableURL = executable
+        p.arguments = javaArguments
+        p.currentDirectoryURL = jarDir
+        p.environment = environment
+
+        let out = Pipe()
+        let err = Pipe()
+        p.standardOutput = out
+        p.standardError = err
+
+        out.fileHandleForReading.readabilityHandler = { h in
+            let d = h.availableData
+            if d.isEmpty { return }
+            if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
+        }
+        err.fileHandleForReading.readabilityHandler = { h in
+            let d = h.availableData
+            if d.isEmpty { return }
+            if let s = String(data: d, encoding: .utf8), !s.isEmpty { log(s) }
+        }
+
+        try p.run()
+        Thread.sleep(forTimeInterval: javaProcessPostRunHandshakeWait)
+        if !p.isRunning {
+            let code = p.terminationStatus
+            out.fileHandleForReading.readabilityHandler = nil
+            err.fileHandleForReading.readabilityHandler = nil
+            drainPipeRemainder(pipe: out, log: log)
+            drainPipeRemainder(pipe: err, log: log)
+            log("Java-Start fehlgeschlagen (Exit \(code)).\n")
+            throw LaunchError.clientExit(code)
+        }
+
+        // `Process` + Pipes bis zum JVM-Ende im Registry halten; Aufräumen in `terminationHandler` auf dem Main Thread
+        // (kein `waitUntilExit` in einem `Task.detached`, damit der Menüleisten-Launcher nicht mit beendet wird).
+        DetachedJavaProcessRegistry.shared.addConsole(
+            process: p,
+            out: out,
+            err: err,
+            showConsole: showConsole,
+            log: log
+        )
     }
 
     /// Startet **java** direkt als Kindprozess (ohne `bash`), leitet Ausgabe in eine Logdatei und **hält** `Process` + `FileHandle`, damit der Launcher nicht beendet wird und keine Pipes offen bleiben.
