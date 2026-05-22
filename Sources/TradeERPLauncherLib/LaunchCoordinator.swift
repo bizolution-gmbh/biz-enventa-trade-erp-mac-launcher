@@ -232,8 +232,10 @@ enum LaunchCoordinator {
         var vm: [String] = []
         vm.append(contentsOf: brokerInfo.JavaProperties ?? [])
         stripCommandLineHijackingArguments(&vm, log: log)
-        stripDisplayConsoleSystemProperties(&vm)
-        stripTraceLevelSystemProperties(&vm)
+        // Doppelte Launcher-eigene Schlüssel aus Broker-Daten entfernen — die Einstellung des Launchers
+        // (Tab „Allgemein“) gewinnt anschließend, indem der Launcher die Werte selbst anhängt.
+        stripBrokerSystemProperty(named: LaunchParameterKey.displayConsole, from: &vm)
+        stripBrokerSystemProperty(named: LaunchParameterKey.traceLevel, from: &vm)
         vm.append("-D\(LaunchParameterKey.displayConsole)=\(settings.DisplayConsole ? "true" : "false")")
         vm.append("-D\(LaunchParameterKey.traceLevel)=\(settings.TraceLevel.rawValue)")
         switch settings.ProxyMode {
@@ -433,20 +435,21 @@ enum LaunchCoordinator {
         log("Java gestartet (ohne Konsole). Stdout/Stderr: \(logURL.path)\n")
     }
 
-    private static func stripDisplayConsoleSystemProperties(_ vm: inout [String]) {
+    /// Entfernt **alle** `-D<key>=…`-Einträge mit dem angegebenen Schlüssel aus `vm`. Vergleich ist
+    /// **case-insensitive** auf den Property-Namen — die ursprünglichen `stripDisplayConsoleSystemProperties`
+    /// und `stripTraceLevelSystemProperties` haben jeweils nur eine Auswahl an Schreibweisen abgedeckt;
+    /// für Launcher-eigene Schlüssel, die wir hinterher selbst setzen, ist die strikt case-insensitive
+    /// Variante korrekter und vermeidet eine wachsende Liste handgepflegter Aliase.
+    ///
+    /// `internal` (statt `private`), damit `@testable`-Tests die Logik direkt prüfen können.
+    static func stripBrokerSystemProperty(named propertyName: String, from vm: inout [String]) {
+        let target = propertyName.lowercased()
         vm.removeAll { token in
             let t = token.trimmingCharacters(in: .whitespaces)
-            return t.hasPrefix("-DDisplayConsole=") || t.hasPrefix("-DdisplayConsole=")
-        }
-    }
-
-    /// Doppelte `-DTraceLevel=…` aus Broker-Daten entfernen — die Einstellung des Launchers (Tab „Allgemein“) gewinnt.
-    private static func stripTraceLevelSystemProperties(_ vm: inout [String]) {
-        vm.removeAll { token in
-            let t = token.trimmingCharacters(in: .whitespaces)
-            return t.hasPrefix("-D\(LaunchParameterKey.traceLevel)=")
-                || t.hasPrefix("-Dtracelevel=")
-                || t.hasPrefix("-DtraceLevel=")
+            guard t.count > 2, t.hasPrefix("-D"), let eqIdx = t.firstIndex(of: "=") else { return false }
+            let keyStart = t.index(t.startIndex, offsetBy: 2)
+            guard keyStart < eqIdx else { return false }
+            return t[keyStart ..< eqIdx].lowercased() == target
         }
     }
 
