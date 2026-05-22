@@ -80,12 +80,35 @@ struct LauncherSettings: Codable, Equatable {
 
     func save() {
         Self.ioQueue.async {
-            try? FileManager.default.createDirectory(
-                at: AppPaths.appDataDirectory,
-                withIntermediateDirectories: true
-            )
-            if let data = try? JSONEncoder().encode(self) {
-                try? data.write(to: AppPaths.launcherConfigURL, options: .atomic)
+            // Verzeichnis-Anlage darf scheitern, wenn das Verzeichnis bereits existiert (häufiger Fall) —
+            // wir werfen den Fehler bewusst nur an stderr, falls die spätere Schreib-/Encode-Phase scheitert
+            // (sonst würde jeder Programmstart fälschlich eine harmlose „File exists“-Meldung zeigen).
+            let directoryError: Error?
+            do {
+                try FileManager.default.createDirectory(
+                    at: AppPaths.appDataDirectory,
+                    withIntermediateDirectories: true
+                )
+                directoryError = nil
+            } catch {
+                directoryError = error
+            }
+            do {
+                let data = try JSONEncoder().encode(self)
+                try data.write(to: AppPaths.launcherConfigURL, options: .atomic)
+            } catch {
+                let url = AppPaths.launcherConfigURL.path
+                if let directoryError {
+                    fputs(
+                        "TradeERPLauncher: launcherconfig.json konnte nicht gespeichert werden (\(error.localizedDescription)). Verzeichnisanlage zuvor: \(directoryError.localizedDescription). Pfad: \(url).\n",
+                        stderr
+                    )
+                } else {
+                    fputs(
+                        "TradeERPLauncher: launcherconfig.json konnte nicht gespeichert werden (\(error.localizedDescription)). Pfad: \(url).\n",
+                        stderr
+                    )
+                }
             }
         }
     }
