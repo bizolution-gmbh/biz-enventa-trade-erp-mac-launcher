@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 @testable import TradeERPLauncherLib
@@ -36,5 +37,21 @@ final class LauncherBundleMetadataTests: XCTestCase {
             LauncherBundleMetadata.formatDisplayVersion(shortVersion: "4.8.0.2", preReleaseTag: "  beta  "),
             "4.8.0.2-beta"
         )
+    }
+
+    func testStandardPanelOptionsAddsApplicationVersion() {
+        let opts = LauncherAboutPanel.standardPanelOptions(displayVersion: "4.8.0.2-dev")
+        XCTAssertEqual(opts[.applicationVersion] as? String, "4.8.0.2-dev")
+    }
+
+    func testStandardPanelOptionsTrimsWhitespace() {
+        let opts = LauncherAboutPanel.standardPanelOptions(displayVersion: "  4.8.0.2-dev  ")
+        XCTAssertEqual(opts[.applicationVersion] as? String, "4.8.0.2-dev")
+    }
+
+    func testStandardPanelOptionsEmptyForUnknownDisplayVersion() {
+        XCTAssertTrue(LauncherAboutPanel.standardPanelOptions(displayVersion: "—").isEmpty)
+        XCTAssertTrue(LauncherAboutPanel.standardPanelOptions(displayVersion: "").isEmpty)
+        XCTAssertTrue(LauncherAboutPanel.standardPanelOptions(displayVersion: "   ").isEmpty)
     }
 }

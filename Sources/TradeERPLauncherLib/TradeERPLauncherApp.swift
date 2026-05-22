@@ -117,6 +117,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         configWindow = nil
     }
 
+    // MARK: - „Über“-Dialog (App-Menü)
+
+    @objc func showAboutPanelFromAppMenu(_ sender: Any?) {
+        LauncherAboutPanel.present()
+    }
+
     // MARK: - Edit-Menü (Cmd+C/V/X für TextField/TextEditor)
 
     /// Ohne Menü „Bearbeiten“ leiten Cmd+V/C/X u. a. nicht zu `NSTextField`/`NSTextView` (Accessory-App) → Systemton beim Einfügen.
@@ -128,12 +134,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 ?? ProcessInfo.processInfo.processName
             let appItem = NSMenuItem()
             let appSub = NSMenu()
+            // Eigene Methode statt `NSApplication.orderFrontStandardAboutPanel(_:)`, damit der
+            // Vorab-Tag (BizolutionPreReleaseTag) sichtbar ist — siehe `LauncherAboutPanel.present`.
             let aboutItem = NSMenuItem(
                 title: "Über \(appName)",
-                action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                action: #selector(AppDelegate.showAboutPanelFromAppMenu(_:)),
                 keyEquivalent: ""
             )
-            aboutItem.target = NSApp
+            aboutItem.target = AppDelegate.shared
             appSub.addItem(aboutItem)
             appSub.addItem(.separator())
             appSub.addItem(withTitle: "\(appName) beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")

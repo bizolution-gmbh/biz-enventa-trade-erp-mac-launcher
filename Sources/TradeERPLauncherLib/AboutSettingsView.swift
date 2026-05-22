@@ -105,10 +105,19 @@ struct AboutSettingsView: View {
 }
 
 enum LauncherAboutPanel {
-    /// System-„Über“-Dialog (nutzt u. a. `NSHumanReadableCopyright` und Versionsfelder aus der `Info.plist`).
+    /// System-„Über“-Dialog. Ohne Optionen liest macOS `CFBundleShortVersionString` (rein numerisch);
+    /// damit der Vorab-Tag (z. B. `-dev`) auch hier sichtbar ist, wird `applicationVersion` mit
+    /// `LauncherBundleMetadata.displayVersion` überschrieben — Build (`(3)`) bleibt unverändert.
     @MainActor
     static func present() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(nil)
+        NSApp.orderFrontStandardAboutPanel(options: standardPanelOptions(displayVersion: LauncherBundleMetadata.displayVersion))
+    }
+
+    /// Reine Logik (testbar) — baut die Optionen für `orderFrontStandardAboutPanel(options:)`.
+    static func standardPanelOptions(displayVersion: String) -> [NSApplication.AboutPanelOptionKey: Any] {
+        let trimmed = displayVersion.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != "—" else { return [:] }
+        return [.applicationVersion: trimmed]
     }
 }
