@@ -141,18 +141,20 @@ final class RegisteredApplicationsStore: ObservableObject {
         do {
             data = try Data(contentsOf: url)
         } catch {
-            Self.archiveCorruptRegisteredApplicationsFile(at: url, reason: "Lesefehler: \(error.localizedDescription)")
-            file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
-            saveToDisk()
+            handleCorruptRegisteredApplicationsFile(
+                at: url,
+                reason: "Lesefehler: \(error.localizedDescription)"
+            )
             return
         }
         var decoded: RegisteredApplicationsFile
         do {
             decoded = try JSONDecoder().decode(RegisteredApplicationsFile.self, from: data)
         } catch {
-            Self.archiveCorruptRegisteredApplicationsFile(at: url, reason: "JSON nicht dekodierbar: \(error.localizedDescription)")
-            file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
-            saveToDisk()
+            handleCorruptRegisteredApplicationsFile(
+                at: url,
+                reason: "JSON nicht dekodierbar: \(error.localizedDescription)"
+            )
             return
         }
         var changed = Self.applyLegacyPathRewrites(to: &decoded)
@@ -169,9 +171,13 @@ final class RegisteredApplicationsStore: ObservableObject {
 
     /// Verschiebt eine kaputte/unlesbare Konfigurationsdatei in eine `.corrupt-<ISO8601>`-Sicherung neben dem Original.
     /// Mehrere Sicherungen pro Tag werden zur sicheren Seite mit Zeitstempel im Sekundenraster eindeutig gehalten.
-    private nonisolated static func archiveCorruptRegisteredApplicationsFile(at url: URL, reason: String) {
+    ///
+    /// - Returns: `true`, wenn anschließend gefahrlos eine leere Konfiguration über das Original geschrieben werden
+    ///   darf (Backup vorhanden oder Originaldatei fehlt bereits). `false`, wenn das Original noch da ist, aber **kein**
+    ///   Backup angelegt werden konnte — der Aufrufer darf in dem Fall **nichts** überschreiben, sonst Datenverlust.
+    private nonisolated static func archiveCorruptRegisteredApplicationsFile(at url: URL, reason: String) -> Bool {
         let fm = FileManager.default
-        guard fm.fileExists(atPath: url.path) else { return }
+        guard fm.fileExists(atPath: url.path) else { return true }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withYear, .withMonth, .withDay, .withTime, .withColonSeparatorInTime]
         let stamp = formatter.string(from: Date())
@@ -183,11 +189,23 @@ final class RegisteredApplicationsStore: ObservableObject {
                 "TradeERPLauncher: \(url.lastPathComponent) konnte nicht gelesen werden (\(reason)). Sicherung unter \(backupURL.path); Datei wird neu angelegt.\n",
                 stderr
             )
+            return true
         } catch {
             fputs(
-                "TradeERPLauncher: \(url.lastPathComponent) konnte nicht gelesen werden (\(reason)). Sicherung schlug fehl: \(error.localizedDescription).\n",
+                "TradeERPLauncher: \(url.lastPathComponent) konnte nicht gelesen werden (\(reason)). Sicherung schlug fehl: \(error.localizedDescription). Datei bleibt unverändert auf der Platte; Launcher läuft mit leerer Konfiguration weiter, damit kein Datenverlust entsteht.\n",
                 stderr
             )
+            return false
+        }
+    }
+
+    /// Gemeinsamer Pfad nach Lese-/Decodefehler: Backup versuchen, leere In-Memory-Konfiguration setzen,
+    /// **nur** dann die Platten-Datei überschreiben, wenn das Backup tatsächlich angelegt werden konnte.
+    private func handleCorruptRegisteredApplicationsFile(at url: URL, reason: String) {
+        let backupOk = Self.archiveCorruptRegisteredApplicationsFile(at: url, reason: reason)
+        file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
+        if backupOk {
+            saveToDisk()
         }
     }
 
