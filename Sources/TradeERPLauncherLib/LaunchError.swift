@@ -11,6 +11,10 @@ enum LaunchError: Error, LocalizedError {
     case brokerHTTP(Int)
     case brokerDownload(Error)
     case jarShaMismatch(String)
+    /// Broker hat für ein JAR einen `Sha1`-Wert geliefert, der **kein** 40-stelliger Hex-String ist —
+    /// der Wert wird zur Bildung von Cache-Pfaden genutzt, deshalb strikt ablehnen, bevor irgendwas
+    /// auf der Platte angelegt wird.
+    case invalidJarSha1Format(href: String, sha1: String)
     case jarDownload(String, Error)
     case noJavaVersion
     case javaHomeMissing(String)
@@ -44,6 +48,8 @@ enum LaunchError: Error, LocalizedError {
         case .brokerDownload(let e):
             "Broker-Download fehlgeschlagen: \(networkFailureSummary(for: e))\(URLError.launcherConnectivityHint(for: e).map { "\n\n\($0)" } ?? "")"
         case .jarShaMismatch(let href): "SHA-1 stimmt nicht: \(href)"
+        case .invalidJarSha1Format(let href, let sha1):
+            "Broker liefert für \(href) einen ungültigen SHA-1-Wert (\(sha1)). Erwartet werden genau 40 Hex-Zeichen."
         case .jarDownload(let href, let e):
             "JAR-Download \(href): \(networkFailureSummary(for: e))\(URLError.launcherConnectivityHint(for: e).map { "\n\n\($0)" } ?? "")"
         case .noJavaVersion: "Keine unterstützte Java-Version laut Broker und Konfiguration."

@@ -10,6 +10,22 @@ enum JarCache {
             .replacingOccurrences(of: ":", with: ".")
     }
 
+    /// SHA-1 als reiner Hex-String (40 Zeichen, `[0-9A-Fa-f]`). Wird vor jeder Pfad-Bildung
+    /// mit `jar.Sha1` aufgerufen — `URL.appendingPathComponent` normalisiert keine `../`-Sequenzen,
+    /// und der Wert stammt aus einer **unsignierten** Broker-Antwort.
+    static func isValidSha1Hex(_ raw: String) -> Bool {
+        guard raw.count == 40 else { return false }
+        for c in raw.unicodeScalars {
+            switch c {
+            case "0" ... "9", "a" ... "f", "A" ... "F":
+                continue
+            default:
+                return false
+            }
+        }
+        return true
+    }
+
     static func saveBrokerJson(brokerUrl: String, json: String) throws {
         let name = escapeBrokerName(brokerUrl) + ".json"
         let dir = AppPaths.jarCacheDirectory.appendingPathComponent("broker", isDirectory: true)
@@ -38,6 +54,11 @@ enum JarCache {
         baseJarUri: URL,
         jar: ApiJarFile
     ) async throws {
+        // Ungültige Sha1-Werte (Pfad-Traversal, NUL, falsche Länge) **vor** jeder Pfad-Bildung
+        // ablehnen. Sonst landet ein manipulierter String z. B. als Verzeichnisname im Cache.
+        guard isValidSha1Hex(jar.Sha1) else {
+            throw LaunchError.invalidJarSha1Format(href: jar.Href, sha1: jar.Sha1)
+        }
         let jarRoot = AppPaths.jarDirectory
         let finalJar = jarRoot.appendingPathComponent(jar.Sha1 + ".jar", isDirectory: false)
         let finalNative = jarRoot.appendingPathComponent(jar.Sha1, isDirectory: true)

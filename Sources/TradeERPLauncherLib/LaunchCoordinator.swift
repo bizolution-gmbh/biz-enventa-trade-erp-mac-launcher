@@ -117,6 +117,16 @@ enum LaunchCoordinator {
         try JarCache.saveBrokerJson(brokerUrl: launch.broker, json: jsonText)
         let brokerInfo = try JSONFlexible.decodeJarDownload(data: brokerPayload)
 
+        // SHA-1-Werte stammen aus einer **unsignierten** Broker-Antwort und werden später als
+        // Cache-Pfad-Komponenten und Classpath-Einträge verwendet. Vor dem ersten Pfad-Zugriff
+        // einmalig hart validieren — sonst landet ein manipulierter String z. B. als Verzeichnis
+        // im Cache, bevor `JarCache.downloadJar` die Validierung greifen lässt.
+        for jar in brokerInfo.JarFiles ?? [] {
+            guard JarCache.isValidSha1Hex(jar.Sha1) else {
+                throw LaunchError.invalidJarSha1Format(href: jar.Href, sha1: jar.Sha1)
+            }
+        }
+
         switch VersionPolicy.evaluateLauncherMinVersion(brokerInfo.LauncherMinVersion) {
         case .ok:
             break
