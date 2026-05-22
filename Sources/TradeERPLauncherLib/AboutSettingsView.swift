@@ -3,8 +3,30 @@ import SwiftUI
 
 /// Aus `Bundle.main` / `Info.plist` für „Über“ und Support.
 enum LauncherBundleMetadata {
+    /// Reine Marketing-Version (rein numerisch, für Broker-Versionsvergleiche, vgl. `VersionPolicy.Semantic.parse`).
     static var marketingVersion: String {
         nonEmpty(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "—"
+    }
+
+    /// Optionales Vorab-Kennzeichen aus `Info.plist` (Custom-Key `BizolutionPreReleaseTag`),
+    /// gesetzt zwischen Releases (`dev`, `beta`, …) und im Release-Commit auf leer zurückgesetzt.
+    static var preReleaseTag: String? {
+        nonEmpty(Bundle.main.object(forInfoDictionaryKey: "BizolutionPreReleaseTag") as? String)
+    }
+
+    /// Anzeigeform für „Über“-Tab und Konsole: numerische Version, ergänzt um `-tag`, falls gesetzt.
+    /// Bewusst getrennt von `marketingVersion`, damit `CFBundleShortVersionString` rein numerisch bleibt
+    /// und Apple-Konventionen sowie `VersionPolicy.Semantic.parse` weiter erfüllt sind.
+    static var displayVersion: String {
+        formatDisplayVersion(shortVersion: marketingVersion, preReleaseTag: preReleaseTag)
+    }
+
+    /// Reine Logik (testbar) — vereint Version und Vorab-Tag in der Anzeigeform.
+    static func formatDisplayVersion(shortVersion: String, preReleaseTag: String?) -> String {
+        guard let tag = preReleaseTag?.trimmingCharacters(in: .whitespacesAndNewlines), !tag.isEmpty else {
+            return shortVersion
+        }
+        return "\(shortVersion)-\(tag)"
     }
 
     static var buildVersion: String {
@@ -52,7 +74,7 @@ struct AboutSettingsView: View {
 
             Section {
                 LabeledContent("Version") {
-                    Text(LauncherBundleMetadata.marketingVersion)
+                    Text(LauncherBundleMetadata.displayVersion)
                         .textSelection(.enabled)
                 }
                 LabeledContent("Build") {
