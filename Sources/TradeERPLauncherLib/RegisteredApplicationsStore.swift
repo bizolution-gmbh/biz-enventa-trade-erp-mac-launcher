@@ -121,6 +121,8 @@ final class RegisteredApplicationsStore: ObservableObject {
     private init() {}
 
     /// Erster Start / Installation: Datei anlegen oder laden; `menuBarExtraEnabled` immer auf `true` migrieren.
+    /// Bei **Lese-/Decodierfehlern** der bestehenden Datei wird ein **Backup** angelegt, bevor eine leere Konfiguration geschrieben wird —
+    /// damit ein temporärer Defekt (laufendes Backup, beschädigter Ordner) nicht stillschweigend zu Datenverlust führt.
     func bootstrapTrayPersistenceAtLaunch() {
         let url = AppPaths.registeredApplicationsMenuJSONURL
         let fm = FileManager.default
@@ -135,12 +137,20 @@ final class RegisteredApplicationsStore: ObservableObject {
             saveToDisk()
             return
         }
-        guard let data = try? Data(contentsOf: url) else {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            Self.archiveCorruptRegisteredApplicationsFile(at: url, reason: "Lesefehler: \(error.localizedDescription)")
             file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
             saveToDisk()
             return
         }
-        guard var decoded = try? JSONDecoder().decode(RegisteredApplicationsFile.self, from: data) else {
+        var decoded: RegisteredApplicationsFile
+        do {
+            decoded = try JSONDecoder().decode(RegisteredApplicationsFile.self, from: data)
+        } catch {
+            Self.archiveCorruptRegisteredApplicationsFile(at: url, reason: "JSON nicht dekodierbar: \(error.localizedDescription)")
             file = RegisteredApplicationsFile(menuBarExtraEnabled: true, shortcuts: [])
             saveToDisk()
             return
@@ -155,6 +165,30 @@ final class RegisteredApplicationsStore: ObservableObject {
             saveToDisk()
         }
         enqueueMissingBrokerIconFetches()
+    }
+
+    /// Verschiebt eine kaputte/unlesbare Konfigurationsdatei in eine `.corrupt-<ISO8601>`-Sicherung neben dem Original.
+    /// Mehrere Sicherungen pro Tag werden zur sicheren Seite mit Zeitstempel im Sekundenraster eindeutig gehalten.
+    private nonisolated static func archiveCorruptRegisteredApplicationsFile(at url: URL, reason: String) {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: url.path) else { return }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withYear, .withMonth, .withDay, .withTime, .withColonSeparatorInTime]
+        let stamp = formatter.string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        let backupURL = url.appendingPathExtension("corrupt-\(stamp)")
+        do {
+            try fm.copyItem(at: url, to: backupURL)
+            fputs(
+                "TradeERPLauncher: \(url.lastPathComponent) konnte nicht gelesen werden (\(reason)). Sicherung unter \(backupURL.path); Datei wird neu angelegt.\n",
+                stderr
+            )
+        } catch {
+            fputs(
+                "TradeERPLauncher: \(url.lastPathComponent) konnte nicht gelesen werden (\(reason)). Sicherung schlug fehl: \(error.localizedDescription).\n",
+                stderr
+            )
+        }
     }
 
     func loadFromDisk() {
