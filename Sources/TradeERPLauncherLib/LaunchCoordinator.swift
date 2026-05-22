@@ -425,12 +425,33 @@ enum LaunchCoordinator {
         }
     }
 
-    /// Defense in depth: Broker-Argumente, die die Launcher-Konfiguration aushebeln würden, vor dem JVM-Aufruf entfernen.
-    /// Der Launcher setzt **explizit** `-cp`, ggf. `-jar` und `MainClass` selbst (siehe `startJavaClient`); zusätzlich aufgenommene
-    /// Argumente derselben Art würden die Reihenfolge sprengen oder Code aus anderen Quellen laden (`-javaagent`, `-agentlib`).
-    private static func stripCommandLineHijackingArguments(_ vm: inout [String], log: (String) -> Void) {
+    /// Defense in depth: Broker-Argumente, die die Launcher-Konfiguration aushebeln **oder OS-Befehle ausführen** würden,
+    /// vor dem JVM-Aufruf entfernen.
+    ///
+    /// Der Launcher setzt **explizit** `-cp`, ggf. `-jar` und `MainClass` selbst (siehe `startJavaClient`); zusätzlich
+    /// aufgenommene Argumente derselben Art würden die Reihenfolge sprengen oder Code aus anderen Quellen laden
+    /// (`-javaagent`, `-agentlib`, `-agentpath`, `-Xbootclasspath/p:`).
+    ///
+    /// **OS-Befehlsausführung**: `-XX:OnError=`, `-XX:OnOutOfMemoryError=` und `-XX:OnUnhandledException=` erlauben
+    /// dem JVM, beim Fehlerfall Shell-Kommandos auszuführen — bei einem nicht vertrauenswürdigen Broker (oder einem
+    /// Klartext-`http`-Kanal) ist das ein klassischer Eingriffspunkt für Argumentinjektion.
+    ///
+    /// `internal` (statt `private`), damit `@testable`-Tests die reine Logik direkt prüfen können.
+    static func stripCommandLineHijackingArguments(_ vm: inout [String], log: (String) -> Void) {
         let dangerousExactPrefixes = ["-cp", "-classpath", "-jar"]
-        let dangerousFlagPrefixes = ["-javaagent:", "-agentlib:", "-agentpath:"]
+        let dangerousFlagPrefixes = [
+            "-javaagent:",
+            "-agentlib:",
+            "-agentpath:",
+            // OS-Befehlsausführung beim JVM-Fehler — vom Broker nicht setzbar lassen.
+            "-XX:OnError=",
+            "-XX:OnOutOfMemoryError=",
+            "-XX:OnUnhandledException=",
+            // Boot-Classpath kann Plattform-Klassen ersetzen (insbesondere relevant unter Java 8).
+            "-Xbootclasspath:",
+            "-Xbootclasspath/a:",
+            "-Xbootclasspath/p:",
+        ]
         var stripped: [String] = []
         var index = 0
         while index < vm.count {
@@ -453,7 +474,7 @@ enum LaunchCoordinator {
             index += 1
         }
         guard !stripped.isEmpty else { return }
-        log("Hinweis: Launcher hat \(stripped.count) Broker-JVM-Argument(e) ignoriert (kollidieren mit Launcher-Setup): \(stripped.joined(separator: " "))\n")
+        log("Hinweis: Launcher hat \(stripped.count) Broker-JVM-Argument(e) ignoriert (kollidieren mit Launcher-Setup oder erlauben OS-Befehlsausführung): \(stripped.joined(separator: " "))\n")
     }
 
     fileprivate static func drainPipeRemainder(pipe: Pipe, log: (String) -> Void) {
