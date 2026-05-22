@@ -79,7 +79,8 @@ private final class DetachedJavaProcessRegistry: @unchecked Sendable {
 /// Orchestrierung: Broker laden, JARs cachen, Java starten — Port von `LaunchService`.
 enum LaunchCoordinator {
     /// Kurz warten nach `Process.run`, bis `isRunning` zuverlässig gesetzt ist (sonst fälschlicher sofortiger Fehlerpfad).
-    private static let javaProcessPostRunHandshakeWait: TimeInterval = 0.28
+    /// Als Nanosekunden, damit `Task.sleep(nanoseconds:)` keinen Float-Konvertierungs-Round-Trip braucht.
+    private static let javaProcessPostRunHandshakeWaitNanoseconds: UInt64 = 280_000_000
 
     static func filterOsArchitecture(jarFiles: [ApiJarFile], jvmArch: String?) -> [ApiJarFile] {
         let osFiltered = jarFiles.filter { jar in
@@ -186,7 +187,7 @@ enum LaunchCoordinator {
             }
         }
 
-        try startJavaClient(
+        try await startJavaClient(
             brokerInfo: brokerInfo,
             launch: launch,
             settings: settings,
@@ -227,7 +228,7 @@ enum LaunchCoordinator {
         arch: String?,
         detachAfterStart: Bool,
         log: @escaping (String) -> Void
-    ) throws {
+    ) async throws {
         var vm: [String] = []
         vm.append(contentsOf: brokerInfo.JavaProperties ?? [])
         stripCommandLineHijackingArguments(&vm, log: log)
@@ -320,7 +321,7 @@ enum LaunchCoordinator {
         }
 
         if detachAfterStart {
-            try startJavaClientDetached(
+            try await startJavaClientDetached(
                 javaPath: runtime.javaExecutable.path,
                 javaArguments: args,
                 jarDir: jarDir,
@@ -328,7 +329,7 @@ enum LaunchCoordinator {
                 log: log
             )
         } else {
-            try startJavaClientWithConsolePipes(
+            try await startJavaClientWithConsolePipes(
                 executable: runtime.javaExecutable,
                 javaArguments: args,
                 jarDir: jarDir,
@@ -349,7 +350,7 @@ enum LaunchCoordinator {
         environment: [String: String],
         showConsole: Bool,
         log: @escaping (String) -> Void
-    ) throws {
+    ) async throws {
         let p = Process()
         p.executableURL = executable
         p.arguments = javaArguments
@@ -373,7 +374,7 @@ enum LaunchCoordinator {
         }
 
         try p.run()
-        Thread.sleep(forTimeInterval: javaProcessPostRunHandshakeWait)
+        try await Task.sleep(nanoseconds: javaProcessPostRunHandshakeWaitNanoseconds)
         if !p.isRunning {
             let code = p.terminationStatus
             out.fileHandleForReading.readabilityHandler = nil
@@ -402,7 +403,7 @@ enum LaunchCoordinator {
         jarDir: URL,
         environment: [String: String],
         log: @escaping (String) -> Void
-    ) throws {
+    ) async throws {
         try FileManager.default.createDirectory(at: AppPaths.logFilesDirectory, withIntermediateDirectories: true)
         let logURL = AppPaths.logFilesDirectory.appendingPathComponent("java-client-output.log", isDirectory: false)
         if !FileManager.default.fileExists(atPath: logURL.path) {
@@ -421,7 +422,7 @@ enum LaunchCoordinator {
         p.standardError = logHandle
 
         try p.run()
-        Thread.sleep(forTimeInterval: javaProcessPostRunHandshakeWait)
+        try await Task.sleep(nanoseconds: javaProcessPostRunHandshakeWaitNanoseconds)
         if !p.isRunning {
             let code = p.terminationStatus
             try? logHandle.close()
