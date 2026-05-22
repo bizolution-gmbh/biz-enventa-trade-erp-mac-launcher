@@ -44,6 +44,17 @@ enum ZuluJava8FxRuntimeDownloader {
         try fm.createDirectory(at: tmpStage, withIntermediateDirectories: true)
         try extractTarGz(archive: tmpTar, destination: tmpStage)
 
+        // Defense in depth: `/usr/bin/tar` extrahiert `..`-Pfade und nach außen zeigende Symlinks ohne
+        // Warnung. Bei einem manipulierten Archiv (oder einer Custom-Quelle ohne Hash) verhindern wir,
+        // dass irgendetwas außerhalb des Staging-Verzeichnisses landet.
+        do {
+            try ArchiveExtractionGuard.verifyContainedExtraction(stagingDirectory: tmpStage, fileManager: fm)
+        } catch {
+            throw LaunchError.jre8RuntimeDownloadFailed(
+                "Archiv enthält Pfade außerhalb des Entpack-Verzeichnisses: \(error.localizedDescription)"
+            )
+        }
+
         guard let jdkBundle = findFirstJdkBundle(under: tmpStage) else {
             throw LaunchError.jre8RuntimeDownloadFailed("Im Archiv wurde kein *.jdk-Bundle gefunden.")
         }

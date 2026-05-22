@@ -122,6 +122,14 @@ enum JarCache {
             try? fm.removeItem(at: staging)
             throw LaunchError.jarDownload("unzip", NSError(domain: "unzip", code: Int(proc.terminationStatus)))
         }
+        // Defense in depth: `/usr/bin/unzip` lehnt `..`-Pfade und nach außen zeigende Symlinks
+        // nicht ab. Bei Verstoß komplettes Staging-Verzeichnis verwerfen.
+        do {
+            try ArchiveExtractionGuard.verifyContainedExtraction(stagingDirectory: staging, fileManager: fm)
+        } catch {
+            try? fm.removeItem(at: staging)
+            throw LaunchError.jarDownload("unzip-extraction", error)
+        }
         try removeAllMetaInfDirectories(under: staging)
         try fm.createDirectory(at: destinationDir.deletingLastPathComponent(), withIntermediateDirectories: true)
         try fm.moveItem(at: staging, to: destinationDir)
