@@ -14,6 +14,8 @@ enum LaunchParameterKey {
     static let splashImage = "splashImage"
     /// Wie in der Windows-`launcherconfig.json` (PascalCase, Wert `True`/`False`).
     static let displayConsole = "DisplayConsole"
+    /// Verbose-Stufe der Java-Client-Logausgabe (PascalCase wie auf Windows: `Error`/`Warning`/`Information`/`Verbose`).
+    static let traceLevel = "TraceLevel"
 }
 
 struct LaunchParameters: Sendable {

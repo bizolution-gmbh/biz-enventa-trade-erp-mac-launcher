@@ -207,7 +207,9 @@ enum LaunchCoordinator {
         var vm: [String] = []
         vm.append(contentsOf: brokerInfo.JavaProperties ?? [])
         stripDisplayConsoleSystemProperties(&vm)
+        stripTraceLevelSystemProperties(&vm)
         vm.append("-D\(LaunchParameterKey.displayConsole)=\(settings.DisplayConsole ? "true" : "false")")
+        vm.append("-D\(LaunchParameterKey.traceLevel)=\(settings.TraceLevel.rawValue)")
         switch settings.ProxyMode {
         case .Direct:
             vm.append("-Djava.net.useSystemProxies=false")
@@ -377,6 +379,16 @@ enum LaunchCoordinator {
         vm.removeAll { token in
             let t = token.trimmingCharacters(in: .whitespaces)
             return t.hasPrefix("-DDisplayConsole=") || t.hasPrefix("-DdisplayConsole=")
+        }
+    }
+
+    /// Doppelte `-DTraceLevel=…` aus Broker-Daten entfernen — die Einstellung des Launchers (Tab „Allgemein“) gewinnt.
+    private static func stripTraceLevelSystemProperties(_ vm: inout [String]) {
+        vm.removeAll { token in
+            let t = token.trimmingCharacters(in: .whitespaces)
+            return t.hasPrefix("-D\(LaunchParameterKey.traceLevel)=")
+                || t.hasPrefix("-Dtracelevel=")
+                || t.hasPrefix("-DtraceLevel=")
         }
     }
 
