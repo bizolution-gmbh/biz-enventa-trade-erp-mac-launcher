@@ -336,8 +336,16 @@ struct Java8CustomSourceListRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.Label.isEmpty ? "(ohne Bezeichnung)" : entry.Label)
-                    .font(.body.weight(.medium))
+                HStack(spacing: 6) {
+                    Text(entry.Label.isEmpty ? "(ohne Bezeichnung)" : entry.Label)
+                        .font(.body.weight(.medium))
+                    if entry.HashType == .none {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .help("Ohne Prüfsumme keine Integritätsprüfung — empfohlen nur in geschützten Netzen.")
+                            .accessibilityLabel("Ohne Prüfsumme")
+                    }
+                }
                 Text(entry.DownloadUrl)
                     .font(.system(.caption, design: .monospaced))
                     .lineLimit(2)
@@ -449,6 +457,23 @@ struct Java8CustomEntryEditor: View {
                 if entry.HashType != .none {
                     TextField("Erwarteter Hash (Hex)", text: $entry.ExpectedHash)
                         .font(.system(.body, design: .monospaced))
+                }
+            }
+            if entry.HashType == .none {
+                Section {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
+                        Text("Ohne Prüfsumme wird die heruntergeladene Datei nicht auf Echtheit geprüft. Empfohlen nur in **geschützten Netzen** mit vertrauenswürdiger Quelle. Für öffentliche URLs SHA-256 oder SHA-512 verwenden.")
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(8)
+                    .background {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.orange.opacity(0.14))
+                    }
                 }
             }
             Section {

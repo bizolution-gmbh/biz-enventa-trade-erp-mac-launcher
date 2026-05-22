@@ -109,9 +109,23 @@ enum LaunchCoordinator {
         launch: LaunchParameters,
         settings: LauncherSettings,
         log: @escaping @Sendable (String) -> Void,
-        versionContinue: @escaping @Sendable (_ required: String, _ installed: String) async -> Bool
+        versionContinue: @escaping @Sendable (_ required: String, _ installed: String) async -> Bool,
+        httpBrokerContinue: @escaping @Sendable (_ host: String) async -> Bool
     ) async throws {
         AppPaths.migrateLegacyDirectoriesIfNeeded()
+
+        // Klartext-`http`-Broker können JAR-Liste, Hashes und VM-Args nach Belieben ersetzen.
+        // Vor dem ersten Netzwerk-Zugriff einmal pro Host die Bestätigung einholen — die Antwort
+        // wird via UI in `HttpBrokerAcknowledgedHostsStore` persistiert.
+        let acknowledged = HttpBrokerAcknowledgedHostsStore.loadAcknowledgedHosts()
+        switch HttpBrokerWarning.decide(brokerString: launch.broker, acknowledgedHosts: acknowledged) {
+        case .noWarningNeeded, .alreadyAcknowledged:
+            break
+        case .warn(let host):
+            let proceed = await httpBrokerContinue(host)
+            guard proceed else { throw CancellationError() }
+        }
+
         let brokerPayload = try await BrokerFetcher.downloadJarDownloadPayload(brokerBase: launch.broker)
         let jsonText = String(data: brokerPayload, encoding: .utf8) ?? ""
         try JarCache.saveBrokerJson(brokerUrl: launch.broker, json: jsonText)

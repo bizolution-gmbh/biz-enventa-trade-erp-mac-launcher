@@ -302,11 +302,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     alert.addButton(withTitle: "Abbrechen")
                     return alert.runModal() == .alertFirstButtonReturn
                 }
+            },
+            httpBrokerContinue: { host in
+                await MainActor.run {
+                    AppDelegate.confirmAndPersistHttpBrokerHost(host)
+                }
             }
         )
         await MainActor.run {
             handleSuccessfulClientLaunch(parsed: parsed)
         }
+    }
+
+    /// Modaler Dialog, der Klartext-`http`-Broker-Hosts vor dem ersten Aufruf bestätigen lässt.
+    /// Bei „Fortfahren“ wird der Host persistent in `HttpBrokerAcknowledgedHostsStore` aufgenommen,
+    /// damit die Frage nicht wiederholt erscheint.
+    static func confirmAndPersistHttpBrokerHost(_ host: String) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Klartext-Verbindung (http) zum Broker?"
+        alert.informativeText = """
+        Der Broker-Host „\(host)“ wird über **http** ohne Verschlüsselung angesprochen. \
+        Ein Angreifer im selben Netz könnte JAR-Inhalte und Server-Antworten ersetzen.
+
+        Wenn Sie diesem Server in Ihrem Netz bewusst vertrauen, können Sie fortfahren — \
+        die Bestätigung wird für diesen Host gespeichert. Sonst stattdessen https verwenden.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Fortfahren")
+        alert.addButton(withTitle: "Abbrechen")
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return false }
+        HttpBrokerAcknowledgedHostsStore.acknowledge(host: host)
+        return true
     }
 
     func presentLaunchError(_ error: Error) {
