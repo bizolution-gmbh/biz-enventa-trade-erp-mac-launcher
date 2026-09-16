@@ -15,6 +15,8 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Fixed
 
+- Java-8-Download erkennt Azul-Zulu-8-tar.gz seit April 2026 (Top-Level-Ordner ohne `.jdk`, `Contents/Home` direkt darunter); zuvor scheiterte das Entpacken mit „kein \*.jdk-Bundle“.
+
 ### Removed
 
 

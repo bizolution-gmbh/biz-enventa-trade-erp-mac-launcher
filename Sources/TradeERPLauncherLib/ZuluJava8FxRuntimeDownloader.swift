@@ -56,7 +56,9 @@ enum ZuluJava8FxRuntimeDownloader {
         }
 
         guard let jdkBundle = findFirstJdkBundle(under: tmpStage) else {
-            throw LaunchError.jre8RuntimeDownloadFailed("Im Archiv wurde kein *.jdk-Bundle gefunden.")
+            throw LaunchError.jre8RuntimeDownloadFailed(
+                "Im Archiv wurde kein macOS-JDK-Bundle gefunden (erwartet Contents/Home/bin/java)."
+            )
         }
         let javaCandidate = jdkBundle.appendingPathComponent("Contents/Home/bin/java", isDirectory: false)
         guard fm.isExecutableFile(atPath: javaCandidate.path) else {
@@ -110,17 +112,31 @@ enum ZuluJava8FxRuntimeDownloader {
         }
     }
 
-    private static func findFirstJdkBundle(under root: URL) -> URL? {
-        let fm = FileManager.default
-        guard let enumerator = fm.enumerator(at: root, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) else {
+    /// Findet das macOS-JDK-Bundle im entpackten Archiv: Ordner mit `Contents/Home/bin/java`.
+    ///
+    /// Azul Zulu 8 (tar.gz) seit April 2026: Top-Level-Ordner **ohne** `.jdk`-Suffix, `Contents/` direkt darunter.
+    /// Ältere Pakete hatten zusätzlich ein `*.jdk`-Verzeichnis — beides wird erkannt.
+    static func findFirstJdkBundle(under root: URL, fileManager fm: FileManager = .default) -> URL? {
+        if isMacOsJdkBundleRoot(root, fileManager: fm) { return root }
+        guard let enumerator = fm.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
             return nil
         }
         for case let item as URL in enumerator {
-            guard item.path.hasSuffix(".jdk") else { continue }
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: item.path, isDirectory: &isDir), isDir.boolValue else { continue }
+            guard isMacOsJdkBundleRoot(item, fileManager: fm) else { continue }
             return item
         }
         return nil
+    }
+
+    private static func isMacOsJdkBundleRoot(_ directory: URL, fileManager fm: FileManager) -> Bool {
+        var isDir: ObjCBool = false
+        guard fm.fileExists(atPath: directory.path, isDirectory: &isDir), isDir.boolValue else { return false }
+        let java = directory.appendingPathComponent("Contents/Home/bin/java", isDirectory: false)
+        var javaIsDir: ObjCBool = false
+        return fm.fileExists(atPath: java.path, isDirectory: &javaIsDir) && !javaIsDir.boolValue
     }
 }
