@@ -1,13 +1,16 @@
 -- Angepasst aus create-dmg (support/template.applescript): Finder-Sidebar ausblenden,
 -- damit das DMG-Fenster nicht deutlich breiter als --window-size wird (u. a. macOS 13+).
 --
+-- Signatur wie upstream create-dmg: zwei Argumente (Datenträgername, Mount-Pfad).
+-- Ein Parameter würde Finder `disk "name/Volumes/name"` ableiten (Fehler -1728).
+--
 -- Nach `close`/`open` setzt Finder den Icon-View oft auf Standard (weißer Hintergrund, Icon-Orte).
 -- Daher: dieselben create-dmg-Klauseln (BACKGROUND, POSITION, …) **noch einmal** nach dem Reopen.
 -- Das upstream-„bounds minus 10“-Zwischenlayout entfällt — vermeidet sichtbares Zittern/falsche Größe.
 
-on run (volumeName)
+on run (diskName, mountDir)
 	tell application "Finder"
-		tell disk (volumeName as string)
+		tell disk (diskName as string)
 			open
 
 			set theXOrigin to WINX
@@ -17,7 +20,7 @@ on run (volumeName)
 
 			set theBottomRightX to (theXOrigin + theWidth)
 			set theBottomRightY to (theYOrigin + theHeight)
-			set dsStore to "\"" & "/Volumes/" & volumeName & "/" & ".DS_STORE\""
+			set dsStore to quoted form of (mountDir & "/.DS_STORE")
 
 			tell container window
 				set current view to icon view
@@ -76,7 +79,7 @@ on run (volumeName)
 
 		delay 1
 
-		tell disk (volumeName as string)
+		tell disk (diskName as string)
 			tell container window
 				set statusbar visible to false
 				try

@@ -15,10 +15,21 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Fixed
 
-- Java-8-Download erkennt Azul-Zulu-8-tar.gz seit April 2026 (Top-Level-Ordner ohne `.jdk`, `Contents/Home` direkt darunter); zuvor scheiterte das Entpacken mit „kein \*.jdk-Bundle“.
-
 ### Removed
 
+
+## [4.8.0.2] - 2026-09-16
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Java-8-Download erkennt Azul-Zulu-8-tar.gz seit April 2026 (Top-Level-Ordner ohne `.jdk`, `Contents/Home` direkt darunter); zuvor scheiterte das Entpacken mit „kein \*.jdk-Bundle“.
+- DMG-Erzeugung: Finder-AppleScript an die aktuelle create-dmg-Signatur (Datenträgername + Mount-Pfad) angepasst.
+
+### Removed
 
 ## [4.8.0.1] - 2026-05-20
 
