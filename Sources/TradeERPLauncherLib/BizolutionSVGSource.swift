@@ -2,13 +2,13 @@ import Foundation
 
 /// SVG-Vorlagen: Dateien unter `Resources/` (SPM-Ressource + Kopie ins `.app` via `Scripts/build_app.sh`); eingebetteter Fallback nur für die Bildmarke.
 enum BizolutionSVGSource {
-    /// Liest `bizolution-mark-farbe-rgb.svg` aus `Bundle.main` oder `Bundle.module`.
+    /// Liest `bizolution-mark-farbe-rgb.svg` aus dem SPM-Resource-Bundle oder `Bundle.main`.
     static func markCroppedSVGForRuntime() -> String {
         loadBundledSVG(named: "bizolution-mark-farbe-rgb") ?? markCroppedEmbedded
     }
 
     /// Liest `bizolution-logo-farbe-rgb.svg` bzw. bei `isDark` `bizolution-logo-farbe-dark.svg` (weiße Textmarke) aus dem Bundle.
-    /// Ressourcen der Lib liegen in `…_TradeERPLauncherLib.bundle` — zuerst `Bundle.module`, sonst schlägt `Bundle.main` oft fehl.
+    /// Ressourcen der Lib liegen in `TradeERPLauncher_TradeERPLauncherLib.bundle`; Lose-Kopie unter `Contents/Resources/` über `Bundle.main`.
     static func fullLogoSVGForRuntime(isDark: Bool) -> String {
         if isDark {
             if let s = loadBundledSVG(named: "bizolution-logo-farbe-dark") {
@@ -38,8 +38,7 @@ enum BizolutionSVGSource {
     }
 
     private static func svgURLs(named base: String) -> [URL] {
-        [Bundle.module.url(forResource: base, withExtension: "svg"),
-         Bundle.main.url(forResource: base, withExtension: "svg")].compactMap { $0 }
+        [LauncherModuleResources.url(forResource: base, withExtension: "svg")].compactMap { $0 }
     }
 
     private static let markCroppedEmbedded: String = #"""

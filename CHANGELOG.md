@@ -13,7 +13,11 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Changed
 
+- Mitgelieferte Java-8-Quelle: Azul Zulu **8u504** (zulu8.96.0.205, CA + JavaFX) statt 8u482; SHA-256 aus der Azul-Metadaten-API, Eintrags-IDs unverändert.
+
 ### Fixed
+
+- Gepackte `.app` stürzte beim Öffnen der Einstellungen ab (`fatalError` in `Bundle.module`): das SPM-Resource-Bundle wurde nicht mit ins Bundle kopiert. Ressourcen werden jetzt ohne diesen Accessor geladen, `build_app.sh` legt `TradeERPLauncher_TradeERPLauncherLib.bundle` in die `.app`.
 
 ### Removed
 

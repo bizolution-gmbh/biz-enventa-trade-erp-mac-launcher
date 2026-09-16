@@ -17,7 +17,7 @@ enum Java8RuntimeCatalogLoader {
         lock.lock()
         defer { lock.unlock() }
         if let c = cachedFile { return c }
-        guard let url = Bundle.module.url(forResource: "Java8RuntimeCatalog", withExtension: "json"),
+        guard let url = LauncherModuleResources.url(forResource: "Java8RuntimeCatalog", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let file = try? JSONDecoder().decode(Java8RuntimeCatalogFile.self, from: data) else {
             return nil

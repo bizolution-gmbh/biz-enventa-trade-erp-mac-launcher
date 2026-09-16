@@ -29,6 +29,19 @@ chmod +x "$BIN"
 if compgen -G "${ROOT}/Sources/TradeERPLauncherLib/Resources/*.svg" > /dev/null; then
   cp "${ROOT}/Sources/TradeERPLauncherLib/Resources/"*.svg "${DEST}/Contents/Resources/" 2>/dev/null || true
 fi
+if [[ -f "${ROOT}/Sources/TradeERPLauncherLib/Resources/Java8RuntimeCatalog.json" ]]; then
+  cp "${ROOT}/Sources/TradeERPLauncherLib/Resources/Java8RuntimeCatalog.json" "${DEST}/Contents/Resources/"
+fi
+# SPM-Resource-Bundle: `swift build` erzeugt einen `Bundle.module`-Accessor, der die Datei
+# neben der .app-Wurzel erwartet (Xcode: unter Contents/Resources). Ohne sie bricht der Start
+# mit fatalError ab, sobald Logo oder Java-8-Katalog geladen werden.
+SPM_RES_BUNDLE="${ROOT}/.build/release/TradeERPLauncher_TradeERPLauncherLib.bundle"
+if [[ -d "${SPM_RES_BUNDLE}" ]]; then
+  ditto "${SPM_RES_BUNDLE}" "${DEST}/TradeERPLauncher_TradeERPLauncherLib.bundle"
+  ditto "${SPM_RES_BUNDLE}" "${DEST}/Contents/Resources/TradeERPLauncher_TradeERPLauncherLib.bundle"
+else
+  echo "Warnung: SPM-Resource-Bundle fehlt (${SPM_RES_BUNDLE}) — gepackte .app stürzt beim Einstellungsfenster ab, falls noch Bundle.module genutzt wird." >&2
+fi
 RES_ICNS="${ROOT}/Sources/TradeERPLauncherLib/Resources/AppIcon.icns"
 echo "==> App-Icon (AppIcon.icns)"
 # Neu erzeugen nur mit rsvg; scheitert iconutil, bleibt die bestehende .icns durch atomares Schreiben im Skript erhalten.

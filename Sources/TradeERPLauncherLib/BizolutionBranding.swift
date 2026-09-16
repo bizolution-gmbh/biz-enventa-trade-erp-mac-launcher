@@ -53,7 +53,7 @@ struct BizolutionFullLogoWebView: NSViewRepresentable {
         let svg = BizolutionSVGSource.fullLogoSVGForRuntime(isDark: isDark)
         let pageBg = windowBackgroundHex(forDark: isDark)
         let html = BizolutionSVGEmbeddedHTML.document(svg: svg, transparentBackground: false, opaquePageHex: pageBg)
-        webView.loadHTMLString(html, baseURL: Bundle.module.resourceURL)
+        webView.loadHTMLString(html, baseURL: LauncherModuleResources.resourceURL)
     }
 
     final class Coordinator {
